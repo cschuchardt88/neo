@@ -20,6 +20,7 @@ jobs:
 
     - name: Brew
       run: |
+        brew install leveldb
         mkdir -vp ./src/Plugins/LevelDBStore/runtimes/win-x64/native
         mkdir -vp ./src/Plugins/LevelDBStore/runtimes/win-arm64/native
         mkdir -vp ./src/Plugins/LevelDBStore/runtimes/osx-x64/native
