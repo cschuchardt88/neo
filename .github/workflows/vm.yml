@@ -19,6 +19,8 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Brew
+      env:
+        DYLD_PRINT_LIBRARIES: 1
       run: |
         brew install leveldb
         brew install wget
