@@ -17,19 +17,19 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     
-    <None Include="$(SolutionDir)bin/runtimes/linux-x64/native/libleveldb.dll" Pack="true" Visible="false" PackagePath="runtimes/linux-x64/native/leveldb.so">
+    <None Include="$(SolutionDir)bin/runtimes/linux-x64/native/libleveldb.so" Pack="true" Visible="false" PackagePath="runtimes/linux-x64/native/leveldb.so">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
 
-    <None Include="$(SolutionDir)bin/runtimes/linux-arm64/native/libleveldb.dll" Pack="true" Visible="false" PackagePath="runtimes/linux-arm64/native/leveldb.so">
+    <None Include="$(SolutionDir)bin/runtimes/linux-arm64/native/libleveldb.so" Pack="true" Visible="false" PackagePath="runtimes/linux-arm64/native/leveldb.so">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
 
-    <None Include="$(SolutionDir)bin/runtimes/osx-x64/native/libleveldb.dll" Pack="true" Visible="false" PackagePath="runtimes/osx-x64/native/leveldb.dylib">
+    <None Include="$(SolutionDir)bin/runtimes/osx-x64/native/libleveldb.dylib" Pack="true" Visible="false" PackagePath="runtimes/osx-x64/native/leveldb.dylib">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
 
-    <None Include="$(SolutionDir)bin/runtimes/osx-arm64/native/libleveldb.dll" Pack="true" Visible="false" PackagePath="runtimes/osx-arm64/native/leveldb.dylib">
+    <None Include="$(SolutionDir)bin/runtimes/osx-arm64/native/libleveldb.dylib" Pack="true" Visible="false" PackagePath="runtimes/osx-arm64/native/leveldb.dylib">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
 
