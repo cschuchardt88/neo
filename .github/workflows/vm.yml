@@ -43,5 +43,6 @@ jobs:
 
         dotnet build ./src/Plugins/LevelDBStore
         ls -la ./src/Plugins/LevelDBStore/runtimes/osx-arm64/native
-        dotnet test ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj
+        dotnet build ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj
         ls -la tests/Neo.Plugins.Storage.Tests/bin/Debug/net8.0/runtimes/osx-arm64/native
+        dotnet test ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj
