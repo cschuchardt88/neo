@@ -42,6 +42,6 @@ jobs:
         cp -vp libleveldb-osx-arm64/libleveldb.dylib ./src/Plugins/LevelDBStore/runtimes/osx-arm64/native/libleveldb.dylib
 
         dotnet build ./src/Plugins/LevelDBStore
-        ls -la ./bin/Neo.Plugins.Storage.LevelDBStore/net8.0
-        ls -la tests/Neo.Plugins.Storage.Tests/bin/Debug/net8.0/runtimes/osx-arm64/native
+        ls -la ./src/Plugins/LevelDBStore/runtimes/osx-arm64/native
         dotnet test ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj
+        ls -la tests/Neo.Plugins.Storage.Tests/bin/Debug/net8.0/runtimes/osx-arm64/native
