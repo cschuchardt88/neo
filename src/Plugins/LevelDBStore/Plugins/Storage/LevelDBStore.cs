@@ -13,8 +13,6 @@ using Neo.IO.Data.LevelDB;
 using Neo.Persistence;
 using System;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace Neo.Plugins.Storage
 {
@@ -25,7 +23,6 @@ namespace Neo.Plugins.Storage
         public LevelDBStore()
         {
             StoreFactory.RegisterProvider(this);
-            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), DllImportResolver);
         }
 
         public IStore GetStore(string path)
@@ -33,17 +30,6 @@ namespace Neo.Plugins.Storage
             if (Environment.CommandLine.Split(' ').Any(p => p == "/repair" || p == "--repair"))
                 DB.Repair(path, Options.Default);
             return new Store(path);
-        }
-
-        private static IntPtr DllImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-        {
-            if (libraryName == "leveldb")
-            {
-                if (OperatingSystem.IsMacOS())
-                    return NativeLibrary.Load("/opt/homebrew/Cellar/leveldb/1.23_1/libleveldb.dylib", assembly, searchPath);
-            }
-
-            return IntPtr.Zero;
         }
     }
 }
