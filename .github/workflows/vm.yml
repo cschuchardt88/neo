@@ -1,0 +1,14 @@
+name: VM
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  vm:
+    runs-on: macos-latest
+    steps:
+    - name: Brew
+      run: |
+        brew install leveldb
+        brew info leveldb
