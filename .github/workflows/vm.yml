@@ -2,13 +2,23 @@ name: VM
 
 on:
   push:
-  pull_request:
+
+env:
+  DOTNET_VERSION: 8.0.x
 
 jobs:
   vm:
     runs-on: macos-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
     - name: Brew
       run: |
         brew install leveldb
-        brew info leveldb
+        dotnet test ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj

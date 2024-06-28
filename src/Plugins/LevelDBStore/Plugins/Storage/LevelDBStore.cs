@@ -40,7 +40,7 @@ namespace Neo.Plugins.Storage
             if (libraryName == "leveldb")
             {
                 if (OperatingSystem.IsMacOS())
-                    return NativeLibrary.Load("libleveldb.dylib", assembly, searchPath);
+                    return NativeLibrary.Load("/opt/homebrew/Cellar/leveldb/1.23_1/libleveldb.dylib", assembly, searchPath);
             }
 
             return IntPtr.Zero;
