@@ -26,5 +26,6 @@ jobs:
         unzip libleveldb-osx-arm64.zip
         cp -vp libleveldb-osx-arm64/libleveldb.dylib ./bin/runtimes/osx-arm64/native/libleveldb.dylib
         dotnet build ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj
-        ls -la ./tests/Neo.Plugins.Storage.Tests/bin/Debug/net8.0/runtimes/osx-arm64/native/
+        ls -la ./tests/Neo.Plugins.Storage.Tests/bin/Debug/net8.0/runtimes/osx-arm64/native
+        ls -la ./bin/runtimes/osx-arm64/native
         dotnet test ./tests/Neo.Plugins.Storage.Tests/Neo.Plugins.Storage.Tests.csproj
