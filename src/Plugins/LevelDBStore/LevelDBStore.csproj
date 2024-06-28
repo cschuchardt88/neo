@@ -17,14 +17,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
 
-    <None Include="../../../bin/runtimes/linux-x64/native/libleveldb.so" Pack="true" Visible="false" PackagePath="runtimes/linux-x64/native/leveldb.so">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
-    <None Include="../../../bin/runtimes/linux-arm64/native/libleveldb.so" Pack="true" Visible="false" PackagePath="runtimes/linux-arm64/native/leveldb.so">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
     <None Include="../../../bin/runtimes/osx-x64/native/libleveldb.dylib" Pack="true" Visible="false" PackagePath="runtimes/osx-x64/native/leveldb.dylib">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
