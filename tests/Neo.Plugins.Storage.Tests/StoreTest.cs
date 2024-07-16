@@ -11,6 +11,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.Persistence;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -21,14 +22,17 @@ namespace Neo.Plugins.Storage.Tests
     {
         private const string path_leveldb = "Data_LevelDB_UT";
         private const string path_rocksdb = "Data_RocksDB_UT";
+        private const string path_fasterdb = "Data_FasterDB_UT";
         private static LevelDBStore levelDbStore;
         private static RocksDBStore rocksDBStore;
+        private static FasterDBStore fasterDBStore;
 
         [TestInitialize]
         public void OnStart()
         {
             levelDbStore ??= new LevelDBStore();
             rocksDBStore ??= new RocksDBStore();
+            fasterDBStore ??= new FasterDBStore();
             OnEnd();
         }
 
@@ -37,6 +41,7 @@ namespace Neo.Plugins.Storage.Tests
         {
             if (Directory.Exists(path_leveldb)) Directory.Delete(path_leveldb, true);
             if (Directory.Exists(path_rocksdb)) Directory.Delete(path_rocksdb, true);
+            if (Directory.Exists(path_fasterdb)) Directory.Delete(path_fasterdb, true);
         }
 
         [TestMethod]
@@ -54,6 +59,22 @@ namespace Neo.Plugins.Storage.Tests
             TestPersistenceRead(store, true);
             TestPersistenceDelete(store);
             TestPersistenceRead(store, false);
+        }
+
+        [TestMethod]
+        public void TestFasterDb()
+        {
+            //TestPersistenceDelete(fasterDBStore.GetStore(path_fasterdb));
+            //// Test all with the same store
+
+            //TestStorage(fasterDBStore.GetStore(path_fasterdb));
+
+            //// Test with different storages
+
+            //TestPersistenceWrite(fasterDBStore.GetStore(path_fasterdb));
+            //TestPersistenceRead(fasterDBStore.GetStore(path_fasterdb), true);
+            //TestPersistenceDelete(fasterDBStore.GetStore(path_fasterdb));
+            //TestPersistenceRead(fasterDBStore.GetStore(path_fasterdb), false);
         }
 
         [TestMethod]

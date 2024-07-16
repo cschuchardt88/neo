@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugins\FasterDBStore\FasterDBStore.csproj" />
     <ProjectReference Include="..\..\src\Plugins\LevelDBStore\LevelDBStore.csproj" />
     <ProjectReference Include="..\..\src\Plugins\RocksDBStore\RocksDBStore.csproj" />
   </ItemGroup>
