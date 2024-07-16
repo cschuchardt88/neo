@@ -8,4 +8,22 @@
     <OutputPath>../../../bin/$(PackageId)</OutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="runtimes/win-arm64/native/libleveldb.dll" Pack="true" Visible="false" PackagePath="runtimes/win-arm64/native/leveldb.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    
+    <None Include="runtimes/win-x64/native/libleveldb.dll" Pack="true" Visible="false" PackagePath="runtimes/win-x64/native/leveldb.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+
+    <None Include="runtimes/osx-x64/native/libleveldb.dylib" Pack="true" Visible="false" PackagePath="runtimes/osx-x64/native/leveldb.dylib">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+
+    <None Include="runtimes/osx-arm64/native/libleveldb.dylib" Pack="true" Visible="false" PackagePath="runtimes/osx-arm64/native/leveldb.dylib">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+
+  </ItemGroup>
 </Project>
