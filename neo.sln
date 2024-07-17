@@ -80,6 +80,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RpcClient", "src\Plugins\Rp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neo.Hosting.App", "src\Neo.Hosting.App\Neo.Hosting.App.csproj", "{C2095AD3-2ACA-46F3-89EC-BE52F98DA59B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neo.Hosting.App.Tests", "tests\Neo.Hosting.App.Tests\Neo.Hosting.App.Tests.csproj", "{DA18E900-B227-479D-8836-3C699C4F44F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -222,6 +224,10 @@ Global
 		{C2095AD3-2ACA-46F3-89EC-BE52F98DA59B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C2095AD3-2ACA-46F3-89EC-BE52F98DA59B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C2095AD3-2ACA-46F3-89EC-BE52F98DA59B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA18E900-B227-479D-8836-3C699C4F44F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA18E900-B227-479D-8836-3C699C4F44F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA18E900-B227-479D-8836-3C699C4F44F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA18E900-B227-479D-8836-3C699C4F44F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -262,6 +268,7 @@ Global
 		{5E4947F3-05D3-4806-B0F3-30DAC71B5986} = {C2DC830A-327A-42A7-807D-295216D30DBB}
 		{185ADAFC-BFC6-413D-BC2E-97F9FB0A8AF0} = {C2DC830A-327A-42A7-807D-295216D30DBB}
 		{C2095AD3-2ACA-46F3-89EC-BE52F98DA59B} = {B5339DF7-5D1D-43BA-B332-74B825E1770E}
+		{DA18E900-B227-479D-8836-3C699C4F44F2} = {EDE05FA8-8E73-4924-BC63-DD117127EEE1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BCBA19D9-F868-4C6D-8061-A2B91E06E3EC}
