@@ -30,9 +30,17 @@ namespace Neo.Hosting.App.CommandLine.Prompt
             var quitCommand = new QuitCommand();
             var showCommand = new ShowCommand(loggerFactory, clientService);
             var walletCommand = new WalletCommand();
+            var pluginCommand = new PluginCommand();
+            var contractCommand = new ContractCommand();
+            var candidateCommand = new CandidateCommand();
+            var nep17Command = new Nep17Command();
 
-            AddCommand(walletCommand);
+            AddCommand(candidateCommand);
+            AddCommand(contractCommand);
             AddCommand(exportCommand);
+            AddCommand(nep17Command);
+            AddCommand(pluginCommand);
+            AddCommand(walletCommand);
             AddCommand(showCommand);
             AddCommand(helpCommand);
             AddCommand(quitCommand);

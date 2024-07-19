@@ -39,6 +39,7 @@ namespace Neo.Hosting.App.NamedPipes
 
             await WriteAsync(responseMessage);
         }
+
         private PipeMessage OnVersion(PipeMessage message) =>
             PipeMessage.Create(message.RequestId, PipeCommand.Version, new PipeVersionPayload());
 
