@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
     <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Neo.Plugins.Storage.FasterDBStore</PackageId>
     <RootNamespace>Neo.Plugins.Storage</RootNamespace>
     <OutputPath>../../../bin/$(PackageId)</OutputPath>
@@ -11,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.FASTER.Core" Version="2.6.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

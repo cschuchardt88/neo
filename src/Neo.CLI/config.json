@@ -6,8 +6,8 @@
       "Active": false
     },
     "Storage": {
-      "Engine": "LevelDBStore",
-      "Path": "Data_LevelDB_{0}"
+      "Engine": "FasterDBStore",
+      "Path": "Data_FasterDB_{0}"
     },
     "P2P": {
       "Port": 10333,

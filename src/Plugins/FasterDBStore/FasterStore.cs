@@ -20,7 +20,7 @@ using System.Linq;
 
 namespace Neo.Plugins.Storage
 {
-    public class FasterStore : IStore
+    public sealed class FasterStore : IStore
     {
         private readonly AsyncPool<ClientSession<byte[], byte[], byte[], byte[], Empty, ByteArrayFunctions>> _sessionPool;
 
@@ -29,33 +29,38 @@ namespace Neo.Plugins.Storage
         private readonly CheckpointSettings _checkpointSettings;
 
         private readonly LinkedList<byte[]> _linkedList_Keys = new();
+        private readonly string _storePath;
 
         public FasterStore(string dirPath)
         {
-            var storePath = Path.GetFullPath(dirPath);
+            _storePath = Path.GetFullPath(dirPath);
+
             _logSettings = new LogSettings()
             {
-                LogDevice = new ManagedLocalStorageDevice(Path.Combine(storePath, "LOG"), recoverDevice: true, osReadBuffering: true),
-                ObjectLogDevice = new ManagedLocalStorageDevice(Path.Combine(storePath, "DATA"), recoverDevice: true, osReadBuffering: true),
+                LogDevice = new ManagedLocalStorageDevice(Path.Combine(_storePath, "LOG"), recoverDevice: true, osReadBuffering: true),
+                ObjectLogDevice = new ManagedLocalStorageDevice(Path.Combine(_storePath, "DATA"), recoverDevice: true, osReadBuffering: true),
                 PageSizeBits = 9,
                 MemorySizeBits = 21,
                 SegmentSizeBits = 21,
-                MutableFraction = 0.1,
-                ReadCopyOptions = new ReadCopyOptions(ReadCopyFrom.AllImmutable, ReadCopyTo.MainLog),
-                ReadCacheSettings = new ReadCacheSettings()
-                {
-                    PageSizeBits = 21,
-                    MemorySizeBits = 30,
-                },
+                MutableFraction = 0.3,
+                //ReadCopyOptions = new ReadCopyOptions(ReadCopyFrom.AllImmutable, ReadCopyTo.MainLog),
+                //ReadCacheSettings = new ReadCacheSettings()
+                //{
+                //    PageSizeBits = 9,
+                //    MemorySizeBits = 21,
+                //},
             };
+
             _checkpointSettings = new CheckpointSettings()
             {
                 CheckpointManager = new DeviceLogCommitCheckpointManager(
                     new LocalStorageNamedDeviceFactory(),
-                    new NeoCheckpointNamingScheme(storePath)),
-                RemoveOutdated = true,
+                    new NeoCheckpointNamingScheme(_storePath),
+                    removeOutdated: false),
             };
-            _store = new(
+
+            _store = new
+            (
                 1L << 20,
                 _logSettings,
                 _checkpointSettings,
@@ -65,15 +70,20 @@ namespace Neo.Plugins.Storage
                     valueSerializer = () => new ByteArrayBinaryObjectSerializer(),
                 },
                 comparer: new ByteArrayFasterEqualityComparer(),
-                tryRecoverLatest: true);
-            _sessionPool = new AsyncPool<ClientSession<byte[], byte[], byte[], byte[], Empty, ByteArrayFunctions>>(
+                tryRecoverLatest: true
+            );
+
+            _sessionPool = new AsyncPool<ClientSession<byte[], byte[], byte[], byte[], Empty, ByteArrayFunctions>>
+            (
                 _logSettings.LogDevice.ThrottleLimit,
-                () => _store.For(new ByteArrayFunctions()).NewSession<ByteArrayFunctions>());
+                () => _store.For(new ByteArrayFunctions()).NewSession<ByteArrayFunctions>()
+            );
         }
 
         public void Dispose()
         {
-            _store.TryInitiateHybridLogCheckpoint(out _, CheckpointType.FoldOver);
+            _checkpointSettings.CheckpointManager.PurgeAll();
+            _store.TryInitiateFullCheckpoint(out _, CheckpointType.FoldOver);
             _store.CompleteCheckpointAsync().AsTask().GetAwaiter().GetResult();
             _store.Dispose();
             _sessionPool.Dispose();
@@ -93,16 +103,19 @@ namespace Neo.Plugins.Storage
             var status = session.Delete(key);
 
             if (status.IsPending)
-                session.CompletePending(true);
+                session.CompletePending(true, true);
             _sessionPool.Return(session);
         }
 
         public ISnapshot GetSnapshot()
         {
-            throw new NotImplementedException();
+            _store.TryInitiateFullCheckpoint(out var snapshotId, CheckpointType.Snapshot);
+            _store.CompleteCheckpointAsync().AsTask().GetAwaiter().GetResult();
+            _store.Log.FlushAndEvict(true);
+            return new FasterSnapshot(this, _storePath, _checkpointSettings, snapshotId);
         }
 
-        public unsafe void Put(byte[] key, byte[] value)
+        public void Put(byte[] key, byte[] value)
         {
             if (_sessionPool.TryGet(out var session) == false)
                 session = _sessionPool.GetAsync().AsTask().GetAwaiter().GetResult();
@@ -110,7 +123,7 @@ namespace Neo.Plugins.Storage
             var status = session.Upsert(key, value);
 
             if (status.IsPending)
-                session.CompletePending(true);
+                session.CompletePending(true, true);
             _sessionPool.Return(session);
         }
 

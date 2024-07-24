@@ -13,7 +13,7 @@ using Neo.Persistence;
 
 namespace Neo.Plugins.Storage
 {
-    public class FasterDBStore : Plugin, IStoreProvider
+    public sealed class FasterDBStore : Plugin, IStoreProvider
     {
         public override string Description => "Uses Microsoft FASTER to store blockchain data.";
 
