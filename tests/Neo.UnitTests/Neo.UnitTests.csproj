@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Neo\Neo.csproj" />
+    <ProjectReference Include="..\..\src\Plugins\FasterDBStore\FasterDBStore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

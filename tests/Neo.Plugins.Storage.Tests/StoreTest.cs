@@ -63,6 +63,60 @@ namespace Neo.Plugins.Storage.Tests
         }
 
         [TestMethod]
+        public void TestMemoryDbSnapshot()
+        {
+            using var store = new MemoryStore();
+
+            var snapshot = store.GetSnapshot();
+
+            var testKey = new byte[] { 0x01, 0x02, 0x03 };
+            var testValue = new byte[] { 0x04, 0x05, 0x06 };
+
+            snapshot.Put(testKey, testValue);
+            // Data saved to the FasterDB snapshot shall not be visible to the store
+            Assert.IsNull(snapshot.TryGet(testKey));
+
+            // Value is in the write batch, not visible to the store and snapshot
+            Assert.AreEqual(false, snapshot.Contains(testKey));
+            Assert.AreEqual(false, store.Contains(testKey));
+
+            snapshot.Commit();
+
+            // After commit, the data shall be visible to the store but not to the snapshot
+            Assert.IsNull(snapshot.TryGet(testKey));
+            CollectionAssert.AreEqual(testValue, store.TryGet(testKey));
+            Assert.AreEqual(false, snapshot.Contains(testKey));
+            Assert.AreEqual(true, store.Contains(testKey));
+
+            snapshot.Dispose();
+        }
+
+        [TestMethod]
+        public void TestMemoryMultiSnapshot()
+        {
+            using var store = new MemoryStore();
+
+            var snapshot = store.GetSnapshot();
+
+            var testKey = new byte[] { 0x01, 0x02, 0x03 };
+            var testValue = new byte[] { 0x04, 0x05, 0x06 };
+
+            snapshot.Put(testKey, testValue);
+            snapshot.Commit();
+            CollectionAssert.AreEqual(testValue, store.TryGet(testKey));
+
+            var snapshot2 = store.GetSnapshot();
+
+            CollectionAssert.AreEqual(testValue, store.TryGet(testKey));
+            // Data saved to the FasterDB from snapshot1 shall be visible to snapshot2 but not visible to snapshot1
+            CollectionAssert.AreEqual(testValue, snapshot2.TryGet(testKey));
+            Assert.IsNull(snapshot.TryGet(testKey));
+
+            snapshot.Dispose();
+            snapshot2.Dispose();
+        }
+
+        [TestMethod]
         public void TestFasterDb()
         {
             TestPersistenceDelete(fasterDBStore.GetStore(path_fasterdb));

@@ -12,6 +12,7 @@
 using Akka.Actor;
 using Neo.Ledger;
 using Neo.Persistence;
+using Neo.Plugins.Storage;
 using System;
 
 namespace Neo.UnitTests
@@ -20,7 +21,7 @@ namespace Neo.UnitTests
     {
         public static readonly NeoSystem TheNeoSystem;
         public static readonly UInt160[] DefaultExtensibleWitnessWhiteList;
-        private static readonly MemoryStore Store = new();
+        private static readonly FasterStore Store = new("Data_FasterDB_UT");
 
         private class StoreProvider : IStoreProvider
         {

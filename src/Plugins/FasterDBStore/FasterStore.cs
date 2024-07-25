@@ -14,13 +14,14 @@ using Neo.IO;
 using Neo.Persistence;
 using Neo.Plugins.Storage.Faster;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
 namespace Neo.Plugins.Storage
 {
-    public sealed class FasterStore : IStore
+    public sealed class FasterStore : IStore, IEnumerable<KeyValuePair<byte[], byte[]>>
     {
         private readonly AsyncPool<ClientSession<byte[], byte[], byte[], byte[], Empty, ByteArrayFunctions>> _sessionPool;
 
@@ -80,6 +81,11 @@ namespace Neo.Plugins.Storage
             );
         }
 
+        public void Reset()
+        {
+            _store.Reset();
+        }
+
         public void Dispose()
         {
             _checkpointSettings.CheckpointManager.PurgeAll();
@@ -112,7 +118,7 @@ namespace Neo.Plugins.Storage
             _store.TryInitiateFullCheckpoint(out var snapshotId, CheckpointType.Snapshot);
             _store.CompleteCheckpointAsync().AsTask().GetAwaiter().GetResult();
             _store.Log.FlushAndEvict(true);
-            return new FasterSnapshot(this, _storePath, _checkpointSettings, snapshotId);
+            return new FasterSnapshot(this, _storePath, _checkpointSettings, snapshotId, _sessionPool);
         }
 
         public void Put(byte[] key, byte[] value)
@@ -135,7 +141,7 @@ namespace Neo.Plugins.Storage
             var keyComparer = direction == SeekDirection.Forward ? ByteArrayComparer.Default : ByteArrayComparer.Reverse;
             var list = new List<(byte[] Key, byte[] Value)>();
 
-            using var iter = session.Iterate(_store.Log.TailAddress);
+            using var iter = session.Iterate();
             while (iter.GetNext(out _))
             {
                 var key = iter.GetKey();
@@ -180,6 +186,28 @@ namespace Neo.Plugins.Storage
 
             _sessionPool.Return(session);
             return value;
+        }
+
+        public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator()
+        {
+            if (_sessionPool.TryGet(out var session) == false)
+                session = _sessionPool.GetAsync().AsTask().GetAwaiter().GetResult();
+
+            using var iter = session.Iterate();
+            while (iter.GetNext(out _))
+            {
+                var key = iter.GetKey();
+                var value = iter.GetValue();
+
+                yield return new(key, value);
+            }
+
+            _sessionPool.Return(session);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }
