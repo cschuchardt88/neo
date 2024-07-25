@@ -21,7 +21,7 @@ namespace Neo.UnitTests
     {
         public static readonly NeoSystem TheNeoSystem;
         public static readonly UInt160[] DefaultExtensibleWitnessWhiteList;
-        private static readonly FasterStore Store = new("Data_FasterDB_UT");
+        private static readonly MemoryStore Store = new();
 
         private class StoreProvider : IStoreProvider
         {
