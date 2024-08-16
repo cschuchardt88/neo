@@ -79,6 +79,7 @@ namespace Neo.Plugins
                 PipeCommand.GetMemoryPoolUnVerified => OnMemoryPoolUnVerified(message),
                 PipeCommand.GetMemoryPoolVerified => OnMemoryPoolVerified(message),
                 PipeCommand.GetRemoteNodes => OnRemoteNodes(message),
+                PipeCommand.Broadcast => OnBroadcast(message),
                 _ => CreateErrorResponse(message.RequestId, new InvalidDataException()),
             };
 

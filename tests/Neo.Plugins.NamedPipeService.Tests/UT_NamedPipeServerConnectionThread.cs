@@ -11,11 +11,13 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.Extensions;
+using Neo.Network.P2P;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.Plugins;
 using Neo.Plugins.Models;
 using Neo.Plugins.Models.Payloads;
+using Neo.SmartContract.Native;
 using System;
 using System.IO.Pipes;
 using System.Threading;
@@ -162,6 +164,27 @@ namespace Neo.Plugins.NamedPipeService.Tests
             Assert.AreEqual(rid, message.RequestId);
             Assert.IsInstanceOfType<PipeArrayPayload<PipeRemoteNodePayload>>(message.Payload);
             Assert.AreEqual(0, remoteNodes.Value.Length);
+        }
+
+        [TestMethod]
+        public async Task SendAndReceive_Messages_TellLocalNode()
+        {
+            var rid = Random.Shared.Next();
+
+            var messagePayload = Message.Create(MessageCommand.Ping, PingPayload.Create(NativeContract.Ledger.CurrentIndex(s_neoSystem.StoreView)));
+            var getBlockPayload = PipeMessage.Create(rid, PipeCommand.Broadcast, new PipeSerializablePayload<Message>() { Value = messagePayload });
+
+            var writeTask = _clientConnection.WriteAsync(getBlockPayload.ToArray());
+
+            var buffer = new byte[1024];
+            var count = await _clientConnection.ReadAsync(buffer).DefaultTimeout();
+
+            var message = PipeMessage.Create(buffer);
+
+            Assert.AreNotEqual(0, message.Size);
+            Assert.AreEqual(PipeCommand.Successful, message.Command);
+            Assert.AreEqual(rid, message.RequestId);
+            Assert.IsInstanceOfType<PipeNullPayload>(message.Payload);
         }
     }
 }

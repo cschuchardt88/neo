@@ -9,6 +9,8 @@
 // Redistribution and use in source and binary forms with or without
 // modifications are permitted.
 
+using Akka.Actor;
+using Neo.Network.P2P;
 using Neo.Network.P2P.Payloads;
 using Neo.Plugins.Models;
 using Neo.Plugins.Models.Payloads;
@@ -88,6 +90,16 @@ namespace Neo.Plugins
             };
 
             return PipeMessage.Create(message.RequestId, PipeCommand.RemoteNodes, payload);
+        }
+
+        private PipeMessage OnBroadcast(PipeMessage message)
+        {
+            if (message.Payload is not PipeSerializablePayload<Message> nodeMessage)
+                return CreateErrorResponse(message.RequestId, new InvalidDataException());
+
+            _system.LocalNode.Tell(nodeMessage.Value);
+
+            return PipeMessage.Create(message.RequestId, PipeCommand.Successful, new PipeNullPayload());
         }
     }
 }
