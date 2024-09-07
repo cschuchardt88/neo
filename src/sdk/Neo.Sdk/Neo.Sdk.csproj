@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <PackageId>Neo.Sdk</PackageId>
+    <PackageTags>NEO;AntShares;Blockchain;Smart Contract;SDK</PackageTags>
+    <OutputPath>../../../bin/$(PackageId)</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Neo\Neo.csproj" />
+  </ItemGroup>
+
+</Project>
