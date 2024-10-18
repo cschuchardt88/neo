@@ -17,7 +17,16 @@ namespace Neo.Extensions
     {
         public static int ToNumber(this Version version)
         {
-            return version.Major * 1000 + version.Minor * 100 + version.Build * 10 + version.Revision;
+            var number = 0;
+            if (version.Major >= 0)
+                number += version.Major * 1000;
+            if (version.Minor >= 0)
+                number += version.Minor * 100;
+            if (version.Build >= 0)
+                number += version.Build * 10;
+            if (version.Revision >= 0)
+                number += version.Revision;
+            return number;
         }
     }
 }

@@ -10,9 +10,6 @@
 // modifications are permitted.
 
 using Neo.ConsoleService;
-using Neo.Cryptography;
-using Neo.IO;
-using Neo.Plugins.AutoBackup.Models;
 using Neo.SmartContract.Native;
 using System.IO;
 using static System.IO.Path;
@@ -25,7 +22,6 @@ namespace Neo.Plugins.AutoBackup
 
         private NeoSystem? _neoSystem;
         private BackupSettings? _settings;
-        private ManifestModel? _manifest;
 
         #endregion
 
@@ -51,10 +47,6 @@ namespace Neo.Plugins.AutoBackup
         protected override void OnSystemLoaded(NeoSystem system)
         {
             _neoSystem = system;
-            _manifest = new()
-            {
-                Network = system.Settings.Network
-            };
         }
 
         #endregion
@@ -88,7 +80,7 @@ namespace Neo.Plugins.AutoBackup
             if (Directory.Exists(dir) == false)
                 Directory.CreateDirectory(dir);
 
-            var filename = string.Format("{0}\\arc.{1}.afc", dir, start);
+            var filename = string.Format($@"{0}\chain.{start}.{end}.arc", dir, start);
             if (File.Exists(filename))
                 File.Delete(filename);
 
@@ -97,12 +89,8 @@ namespace Neo.Plugins.AutoBackup
             for (var idx = 0u; idx <= end; idx++)
             {
                 var block = NativeContract.Ledger.GetBlock(_neoSystem!.StoreView, idx);
-                var checksum = Crc32.Compute(block.ToArray());
-                _manifest!.ChecksumTable = [.. _manifest!.ChecksumTable, checksum];
-                archiveFile.WriteFile($"{idx}", block);
+                archiveFile.WriteBlockEntry(block, _neoSystem!.Settings.Network);
             }
-
-            archiveFile.WriteManifest(_manifest!);
 
             ConsoleHelper.Info($"Backup created at {filename}.");
         }

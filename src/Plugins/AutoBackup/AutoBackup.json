@@ -2,10 +2,7 @@
   "PluginConfiguration": {
     "Path": "Backups_{0}",
     "Auto": false,
-    "VerifyIntegrity": true,
     "CompressionLevel": "Fastest",
-    "SingleFile": true,
-    "PerBlock": 1000,
     "UnhandledExceptionPolicy": "Ignore"
   }
 }

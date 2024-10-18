@@ -11,6 +11,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Neo.ConsoleService\Neo.ConsoleService.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="$(RootNamespace).Tests"/>
+  </ItemGroup>
   
   <ItemGroup>
     <None Update="AutoBackup.json">

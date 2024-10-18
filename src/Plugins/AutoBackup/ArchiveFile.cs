@@ -10,6 +10,7 @@
 // modifications are permitted.
 
 using Neo.IO;
+using Neo.Network.P2P.Payloads;
 using Neo.Plugins.AutoBackup.Models;
 using System;
 using System.IO.Compression;
@@ -33,20 +34,27 @@ namespace Neo.Plugins.AutoBackup
             _archive.Dispose();
         }
 
-        public void WriteManifest(ManifestModel model)
+        public void WriteBlockEntry(Block block, uint network)
         {
-            var entry = _archive.CreateEntry(ManifestModel.FileName, CompressionLevel.Fastest);
+            var entry = _archive.CreateEntry($"{block.Index}", CompressionLevel.SmallestSize);
             using var stream = entry.Open();
-            var data = model.ToArray();
+
+            var blockManifest = new BlockManifestModel() { Block = block, Network = network, };
+            var data = blockManifest.ToArray();
+
             stream.Write(data, 0, data.Length);
         }
 
-        public void WriteFile(string filename, ISerializable model)
+        public BlockManifestModel? ReadBlockEntry(uint index)
         {
-            var entry = _archive.CreateEntry(filename, CompressionLevel.SmallestSize);
+            var entry = _archive.GetEntry($"{index}");
+            if (entry is null) return null;
+
+            var bytes = new byte[entry.Length];
             using var stream = entry.Open();
-            var data = model.ToArray();
-            stream.Write(data, 0, data.Length);
+
+            stream.Read(bytes, 0, bytes.Length);
+            return bytes.AsSerializable<BlockManifestModel>();
         }
     }
 }
