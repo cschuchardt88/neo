@@ -80,7 +80,7 @@ namespace Neo.Plugins.AutoBackup
             if (Directory.Exists(dir) == false)
                 Directory.CreateDirectory(dir);
 
-            var filename = string.Format($@"{0}\chain.{start}.{end}.arc", dir, start);
+            var filename = string.Format(@"{0}\chain.{1}.{2}.arc", dir, start, end);
             if (File.Exists(filename))
                 File.Delete(filename);
 
