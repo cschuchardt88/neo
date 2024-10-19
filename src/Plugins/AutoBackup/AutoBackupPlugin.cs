@@ -13,6 +13,9 @@ using Neo.ConsoleService;
 using Neo.SmartContract.Native;
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using static System.IO.Path;
 
 namespace Neo.Plugins.AutoBackup
@@ -23,6 +26,8 @@ namespace Neo.Plugins.AutoBackup
 
         private NeoSystem? _neoSystem;
         private BackupSettings? _settings;
+        private Task? _autoBackupTask;
+        private readonly CancellationTokenSource _ctsAutoBackup = new();
 
         #endregion
 
@@ -37,7 +42,8 @@ namespace Neo.Plugins.AutoBackup
 
         public override void Dispose()
         {
-
+            _ctsAutoBackup.Cancel();
+            _autoBackupTask?.Wait();
         }
 
         protected override void Configure()
@@ -48,6 +54,7 @@ namespace Neo.Plugins.AutoBackup
         protected override void OnSystemLoaded(NeoSystem system)
         {
             _neoSystem = system;
+            _autoBackupTask = Task.Run(AutoBackup, _ctsAutoBackup.Token);
         }
 
         #endregion
@@ -106,6 +113,51 @@ namespace Neo.Plugins.AutoBackup
 
             ConsoleHelper.Info("Backup created at ", $"{filename}", ".");
             Console.CursorVisible = true;
+        }
+
+        #endregion
+
+        #region Threads
+
+        public async Task AutoBackup()
+        {
+            if (_settings!.Auto == false)
+                return;
+
+            try
+            {
+                var dir = string.Format(_settings!.Path!, _neoSystem!.Settings.Network);
+                if (Directory.Exists(dir) == false)
+                    Directory.CreateDirectory(dir);
+
+                var fileName = string.Format(@"{0}\chain.arc", dir);
+                var fileExists = File.Exists(fileName);
+                using var archiveFile = new ArchiveFile(fileName, !fileExists);
+
+                var height = NativeContract.Ledger.CurrentIndex(_neoSystem!.StoreView);
+                var lastBlockIndex = fileExists ? archiveFile.GetFileNames().Max(uint.Parse) : 0;
+                while (_ctsAutoBackup.IsCancellationRequested == false)
+                {
+                    for (var idx = lastBlockIndex; idx <= height; idx++)
+                    {
+                        if (_ctsAutoBackup.IsCancellationRequested)
+                            break;
+
+                        var block = NativeContract.Ledger.GetBlock(_neoSystem!.StoreView, idx);
+                        archiveFile.WriteBlockEntry(block, _neoSystem!.Settings.Network, _settings!.CompressionLevel);
+                    }
+
+                    await Task.Delay(_neoSystem!.Settings.TimePerBlock, _ctsAutoBackup.Token);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+
+            }
+            catch (Exception ex)
+            {
+                ConsoleHelper.Error(ex.Message);
+            }
         }
 
         #endregion
