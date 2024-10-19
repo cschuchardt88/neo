@@ -18,19 +18,13 @@ namespace Neo.Plugins.AutoBackup
     {
         public string? Path { get; set; } = "Backups_{0}";
         public bool Auto { get; set; } = false;
-        public bool VerifyIntegrity { get; set; } = true;
         public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
-        public bool SingleFile { get; set; } = false;
-        public uint PerBlock { get; set; } = 1000;
 
         public BackupSettings(IConfigurationSection section) : base(section)
         {
             Path = section.GetValue(nameof(Path), "Backups_{0}");
             Auto = section.GetValue(nameof(Auto), false);
-            VerifyIntegrity = section.GetValue(nameof(VerifyIntegrity), true);
             CompressionLevel = section.GetValue(nameof(CompressionLevel), CompressionLevel.Fastest);
-            SingleFile = section.GetValue(nameof(SingleFile), false);
-            PerBlock = section.GetValue(nameof(PerBlock), 1000u);
         }
     }
 }

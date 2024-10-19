@@ -13,6 +13,7 @@ using Neo.IO;
 using Neo.Network.P2P.Payloads;
 using Neo.Plugins.AutoBackup.Models;
 using System;
+using System.Collections.Generic;
 using System.IO.Compression;
 
 namespace Neo.Plugins.AutoBackup
@@ -34,9 +35,17 @@ namespace Neo.Plugins.AutoBackup
             _archive.Dispose();
         }
 
-        public void WriteBlockEntry(Block block, uint network)
+        public IReadOnlyCollection<string> GetFileNames()
         {
-            var entry = _archive.CreateEntry($"{block.Index}", CompressionLevel.SmallestSize);
+            var fileNames = new string[_archive.Entries.Count];
+            for (var i = 0; i < fileNames.Length; i++)
+                fileNames[i] = _archive.Entries[i].Name;
+            return fileNames;
+        }
+
+        public void WriteBlockEntry(Block block, uint network, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        {
+            var entry = _archive.CreateEntry($"{block.Index}", compressionLevel);
             using var stream = entry.Open();
 
             var blockManifest = new BlockManifestModel() { Block = block, Network = network, };

@@ -11,6 +11,7 @@
 
 using Neo.ConsoleService;
 using Neo.SmartContract.Native;
+using System;
 using System.IO;
 using static System.IO.Path;
 
@@ -82,17 +83,29 @@ namespace Neo.Plugins.AutoBackup
 
             var filename = string.Format(@"{0}\chain.{1}.{2}.arc", dir, start, end);
             if (File.Exists(filename))
-                File.Delete(filename);
+            {
+                var answer = ConsoleHelper.ReadUserInput("Backup file already exists. Overwrite? (y/n)");
+                if (answer.ToLowerInvariant() is "yes" or "y")
+                    File.Delete(filename);
+            }
 
             using var archiveFile = new ArchiveFile(filename, true);
+
+            Console.CursorVisible = false;
+
+            var (csrLeft, csrTop) = Console.GetCursorPosition();
 
             for (var idx = 0u; idx <= end; idx++)
             {
                 var block = NativeContract.Ledger.GetBlock(_neoSystem!.StoreView, idx);
-                archiveFile.WriteBlockEntry(block, _neoSystem!.Settings.Network);
+                archiveFile.WriteBlockEntry(block, _neoSystem!.Settings.Network, _settings!.CompressionLevel);
+
+                Console.SetCursorPosition(csrLeft, csrTop);
+                ConsoleHelper.Info("Block ", $"{idx}", $" of ", $"{end}", " archived.");
             }
 
-            ConsoleHelper.Info($"Backup created at {filename}.");
+            ConsoleHelper.Info("Backup created at ", $"{filename}", ".");
+            Console.CursorVisible = true;
         }
 
         #endregion
