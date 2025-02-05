@@ -1,0 +1,49 @@
+{
+  "protocolConfiguration": {
+    "network": 860833666,
+    "addressVersion": 53,
+    "millisecondsPerBlock": 5000,
+    "maxTransactionsPerBlock": 512,
+    "memoryPoolMaxTransactions": 50000,
+    "maxTraceableBlocks": 2102400,
+    "hardforks": {},
+    "initialGasDistribution": 5200000000000000,
+    "validatorsCount": 1,
+    "standbyCommittee": [
+      "02bf93622bfcd8536e311ee3c3357c95ee78c63553d6f9ad18ad0b8b4f36b152d8"
+    ],
+    "wallets": [
+      {
+        "filename": "path/to/file.json",
+        "accounts": [
+          {
+            "privateKey": "f0ea25e1ba6df1165f7d2cce8865a5213d3886c7c8f7ac82bdd88693c678bd2d",
+            "address": "NaYS9QM2Grx7fsw5Gy7vtN12tim2CndXv6",
+            "scriptHash": "0x961f4a5bdaa4028bc4c74bc8857059e67d3d77a0",
+            "label": null,
+            "isDefault": true,
+            "contract": {
+              "script": "0c210244230e90a7ac16f3548cb99201985240be8754158581d0f8450b8385e610b1aa4156e7b327",
+              "parameters": [
+                "Signature"
+              ]
+            }
+          },
+          {
+            "privateKey": "f0ea25e1ba6df1165f7d2cce8865a5213d3886c7c8f7ac82bdd88693c678bd2d",
+            "address": "Ne5d8pgWeoBpeN5vMyBNE6Usxbdsmn1w7K",
+            "scriptHash": "0x2fbd49ad3b97cb5244c268a4bfeb8cd7b4af45c7",
+            "label": "Consensus MultiSigContract",
+            "isDefault": false,
+            "contract": {
+              "script": "110c210244230e90a7ac16f3548cb99201985240be8754158581d0f8450b8385e610b1aa11419ed0dc3a",
+              "parameters": [
+                "Signature"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
