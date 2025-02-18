@@ -10,6 +10,9 @@
 // modifications are permitted.
 
 using Neo.CLI;
+using System;
+using System.IO;
+using System.Reflection;
 
 namespace Neo
 {
@@ -17,8 +20,38 @@ namespace Neo
     {
         static void Main(string[] args)
         {
+            LoadPlugins();
             var mainService = new MainService();
             mainService.Run(args);
+        }
+
+        static void LoadPlugins()
+        {
+            var pluginPath = Plugins.Plugin.PluginsDirectory;
+
+            if (!Directory.Exists(pluginPath)) return;
+            foreach (var rootPath in Directory.GetDirectories(pluginPath))
+            {
+                try
+                {
+                    var pluginName = Path.GetFileNameWithoutExtension(rootPath);
+                    var pluginFilename = Path.Combine(rootPath, $"{pluginName}.dll");
+                    var pluginContext = new PluginLoadContext(pluginFilename);
+                    var assembly = pluginContext.LoadFromAssemblyName(AssemblyName.GetAssemblyName(pluginFilename));
+
+                    foreach (var type in assembly.GetTypes())
+                    {
+                        if (typeof(Plugins.Plugin).IsAssignableFrom(type))
+                        {
+                            var result = Activator.CreateInstance(type) as Plugins.Plugin;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Utility.Log(nameof(Plugins.Plugin), LogLevel.Error, ex);
+                }
+            }
         }
     }
 }

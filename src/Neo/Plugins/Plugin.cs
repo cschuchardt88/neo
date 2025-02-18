@@ -15,8 +15,6 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using static System.IO.Path;
 
 namespace Neo.Plugins
@@ -96,7 +94,6 @@ namespace Neo.Plugins
             s_configWatcher.Created += ConfigWatcher_Changed;
             s_configWatcher.Renamed += ConfigWatcher_Changed;
             s_configWatcher.Deleted += ConfigWatcher_Changed;
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
         }
 
         /// <summary>
@@ -128,37 +125,6 @@ namespace Neo.Plugins
             }
         }
 
-        private static Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)
-        {
-            if (args.Name.Contains(".resources"))
-                return null;
-
-            AssemblyName an = new(args.Name);
-
-            var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.FullName == args.Name) ??
-                           AppDomain.CurrentDomain.GetAssemblies()
-                           .FirstOrDefault(a => a.GetName().Name == an.Name);
-            if (assembly != null) return assembly;
-
-            var filename = an.Name + ".dll";
-            var path = filename;
-            if (!File.Exists(path)) path = Combine(GetDirectoryName(AppContext.BaseDirectory)!, filename);
-            if (!File.Exists(path)) path = Combine(PluginsDirectory, filename);
-            if (!File.Exists(path) && !string.IsNullOrEmpty(args.RequestingAssembly?.GetName().Name))
-                path = Combine(PluginsDirectory, args.RequestingAssembly!.GetName().Name!, filename);
-            if (!File.Exists(path)) return null;
-
-            try
-            {
-                return Assembly.Load(File.ReadAllBytes(path));
-            }
-            catch (Exception ex)
-            {
-                Utility.Log(nameof(Plugin), LogLevel.Error, ex);
-                return null;
-            }
-        }
-
         public virtual void Dispose()
         {
         }
@@ -171,49 +137,6 @@ namespace Neo.Plugins
         {
             return new ConfigurationBuilder().AddJsonFile(ConfigFile, optional: true).Build()
                 .GetSection("PluginConfiguration");
-        }
-
-        private static void LoadPlugin(Assembly assembly)
-        {
-            foreach (var type in assembly.ExportedTypes)
-            {
-                if (!type.IsSubclassOf(typeof(Plugin))) continue;
-                if (type.IsAbstract) continue;
-
-                var constructor = type.GetConstructor(Type.EmptyTypes);
-                if (constructor == null) continue;
-
-                try
-                {
-                    constructor.Invoke(null);
-                }
-                catch (Exception ex)
-                {
-                    Utility.Log(nameof(Plugin), LogLevel.Error, ex);
-                }
-            }
-        }
-
-        internal static void LoadPlugins()
-        {
-            if (!Directory.Exists(PluginsDirectory)) return;
-            List<Assembly> assemblies = [];
-            foreach (var rootPath in Directory.GetDirectories(PluginsDirectory))
-            {
-                foreach (var filename in Directory.EnumerateFiles(rootPath, "*.dll", SearchOption.TopDirectoryOnly))
-                {
-                    try
-                    {
-                        assemblies.Add(Assembly.Load(File.ReadAllBytes(filename)));
-                    }
-                    catch { }
-                }
-            }
-
-            foreach (var assembly in assemblies)
-            {
-                LoadPlugin(assembly);
-            }
         }
 
         /// <summary>
