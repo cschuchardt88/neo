@@ -6,6 +6,7 @@
     <RootNamespace>Neo.Plugins.Storage</RootNamespace>
     <OutputPath>../../../bin/$(PackageId)</OutputPath>
     <Nullable>enable</Nullable>
+    <Description>Uses RocksDBStore to store the blockchain data.</Description>
   </PropertyGroup>
 
   <ItemGroup>

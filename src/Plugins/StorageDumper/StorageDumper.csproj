@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net9.0</TargetFrameworks>
@@ -6,16 +6,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputPath>../../../bin/$(PackageId)</OutputPath>
+    <Description>Exports Neo status data.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Neo.ConsoleService\Neo.ConsoleService.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <None Update="StorageDumper.json">
+    <Content Include="StorageDumper.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Neo.ConsoleService\Neo.ConsoleService.csproj" />
   </ItemGroup>
 
 </Project>

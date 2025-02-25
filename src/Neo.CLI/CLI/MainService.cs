@@ -35,7 +35,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using Array = System.Array;
 using ECCurve = Neo.Cryptography.ECC.ECCurve;
 using ECPoint = Neo.Cryptography.ECC.ECPoint;
@@ -426,11 +425,13 @@ namespace Neo.CLI
 
             LocalNode = NeoSystem.LocalNode.Ask<LocalNode>(new LocalNode.GetInstance()).Result;
 
+            _pluginDownloader = new(Settings.Default.Plugins.DownloadUrl.ToString(), Settings.Default.Plugins.Version);
+
             // installing plugins
-            var installTasks = options.Plugins?.Select(p => p).Where(p => !string.IsNullOrEmpty(p)).ToList().Select(p => InstallPluginAsync(p));
+            var installTasks = options.Plugins?.Select(p => p).Where(p => !string.IsNullOrEmpty(p)).ToList();//.Select(p => InstallPluginAsync(p));
             if (installTasks is not null)
             {
-                await Task.WhenAll(installTasks);
+                //await Task.WhenAll(installTasks);
             }
             foreach (var plugin in Plugin.Plugins)
             {
