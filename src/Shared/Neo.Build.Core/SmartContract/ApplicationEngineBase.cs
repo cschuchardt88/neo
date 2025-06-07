@@ -12,8 +12,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Neo.Build.Core.Factories;
-using Neo.Build.Core.Logging;
-using Neo.Extensions;
+using Neo.Build.Core.SmartContract.Debugger;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.SmartContract;
@@ -76,6 +75,8 @@ namespace Neo.Build.Core.SmartContract
                 systemCallMethods)
         { }
 
+        public event EventHandler<NeoDebugEventArgs>? DebugEvents;
+
         public Transaction? CurrentTransaction => ScriptContainer as Transaction;
 
         private readonly IReadOnlyDictionary<uint, InteropDescriptor> _systemCallMethods;
@@ -98,18 +99,9 @@ namespace Neo.Build.Core.SmartContract
 
         public override VMState Execute()
         {
-            ReadOnlyMemory<byte> memoryScript = CurrentContext?.Script ?? ReadOnlyMemory<byte>.Empty;
-            var scriptString = System.Convert.ToBase64String(memoryScript.Span);
-
-            _traceLogger.LogInformation(VMEventLog.Execute,
-                "Executing container={TxHash}, script={Script}",
-                ScriptContainer?.Hash, scriptString);
-
             var result = base.Execute();
 
-            _traceLogger.LogInformation(VMEventLog.Execute,
-                "Executed state={VMState}, gas={Consumed}, leftover={GasLeft}, result={Result}",
-                result, FeeConsumed, GasLeft, ResultStack.ToJson());
+            EmitExecuteDebugEvent(result);
 
             return result;
         }
@@ -123,7 +115,7 @@ namespace Neo.Build.Core.SmartContract
 
             if (contextState.ScriptHash is not null &&
                 contractState is not null)
-                _traceLogger.LogInformation(VMEventLog.Load,
+                _traceLogger.LogInformation(NeoDebugEvents.Load,
                     "Loaded name={Name}, hash={ScriptHash}",
                     contractState.Manifest.Name, contextState.ScriptHash);
             else
@@ -131,7 +123,7 @@ namespace Neo.Build.Core.SmartContract
                 ReadOnlyMemory<byte> memBytes = context.Script;
                 var scriptString = System.Convert.ToBase64String(memBytes.Span);
 
-                _traceLogger.LogInformation(VMEventLog.Load,
+                _traceLogger.LogInformation(NeoDebugEvents.Result,
                     "Loaded script={Script}",
                     scriptString);
             }
@@ -141,7 +133,7 @@ namespace Neo.Build.Core.SmartContract
         {
             base.OnFault(ex);
 
-            _traceLogger.LogError(VMEventLog.Fault, ex,
+            _traceLogger.LogError(NeoDebugEvents.Fault, ex,
                 "{Message}",
                 ex.InnerException?.Message ?? ex.Message);
         }

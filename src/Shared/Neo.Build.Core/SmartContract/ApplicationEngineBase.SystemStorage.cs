@@ -10,7 +10,7 @@
 // modifications are permitted.
 
 using Microsoft.Extensions.Logging;
-using Neo.Build.Core.Logging;
+using Neo.Build.Core.SmartContract.Debugger;
 using Neo.Extensions;
 using Neo.SmartContract;
 using Neo.SmartContract.Iterators;
@@ -23,7 +23,7 @@ namespace Neo.Build.Core.SmartContract
     {
         protected virtual StorageContext SystemStorageGetContext()
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall}",
                 nameof(System_Storage_GetContext));
 
@@ -31,7 +31,7 @@ namespace Neo.Build.Core.SmartContract
 
             string[] resultString = [result.Id.ToString(), result.IsReadOnly.ToString()];
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Storage_GetContext), string.Join(';', resultString));
 
@@ -40,7 +40,7 @@ namespace Neo.Build.Core.SmartContract
 
         protected virtual StorageContext SystemStorageGetReadOnlyContext()
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall}",
                 nameof(System_Storage_GetReadOnlyContext));
 
@@ -48,7 +48,7 @@ namespace Neo.Build.Core.SmartContract
 
             string[] resultString = [result.Id.ToString(), result.IsReadOnly.ToString()];
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Storage_GetReadOnlyContext), string.Join(';', resultString));
 
@@ -57,7 +57,7 @@ namespace Neo.Build.Core.SmartContract
 
         protected virtual StorageContext SystemStorageAsReadOnly(StorageContext storageContext)
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} id={Id}, readonly={ReadOnly}",
                 nameof(System_Storage_AsReadOnly), storageContext.Id, storageContext.IsReadOnly);
 
@@ -65,7 +65,7 @@ namespace Neo.Build.Core.SmartContract
 
             string[] resultStrings = [result.Id.ToString(), result.IsReadOnly.ToString()];
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Storage_AsReadOnly), string.Join(';', resultStrings));
 
@@ -76,7 +76,7 @@ namespace Neo.Build.Core.SmartContract
         {
             var keyString = GetStorageKeyValueString(key, _storageSettings.KeyFormat);
 
-            _traceLogger.LogInformation(VMEventLog.StorageGet,
+            _traceLogger.LogInformation(NeoDebugEvents.StorageGet,
                 "{SysCall} id={Id}, readonly={ReadOnly}, key={Key}",
                 nameof(System_Storage_Get), storageContext.Id, storageContext.IsReadOnly, keyString);
 
@@ -84,7 +84,7 @@ namespace Neo.Build.Core.SmartContract
 
             var resultString = GetStorageKeyValueString(result, _storageSettings.ValueFormat);
 
-            _traceLogger.LogInformation(VMEventLog.StorageGet,
+            _traceLogger.LogInformation(NeoDebugEvents.StorageGet,
                 "{SysCall} result={Result}",
                 nameof(System_Storage_Get), resultString);
 
@@ -95,13 +95,13 @@ namespace Neo.Build.Core.SmartContract
         {
             var prefixString = GetStorageKeyValueString(prefix, _storageSettings.KeyFormat);
 
-            _traceLogger.LogInformation(VMEventLog.StorageFind,
+            _traceLogger.LogInformation(NeoDebugEvents.StorageFind,
                 "{SysCall} id={Id}, readonly={ReadOnly}, prefix={Prefix}, options={Options}",
                 nameof(System_Storage_Find), storageContext.Id, storageContext.IsReadOnly, prefixString, options.ToString());
 
             var result = Find(storageContext, prefix, options);
 
-            _traceLogger.LogInformation(VMEventLog.StorageFind,
+            _traceLogger.LogInformation(NeoDebugEvents.StorageFind,
                 "{SysCall} result={Result}",
                 nameof(System_Storage_Find), result.GetType().Name);
 
@@ -113,7 +113,7 @@ namespace Neo.Build.Core.SmartContract
             var keyString = GetStorageKeyValueString(key, _storageSettings.KeyFormat);
             var valueString = GetStorageKeyValueString(value, _storageSettings.ValueFormat);
 
-            _traceLogger.LogInformation(VMEventLog.StoragePut,
+            _traceLogger.LogInformation(NeoDebugEvents.StoragePut,
                 "{SysCall} id={Id}, readonly={ReadOnly}, key={Key}, value={Value}",
                 nameof(System_Runtime_Platform), storageContext.Id, storageContext.IsReadOnly, keyString, valueString);
 
@@ -124,7 +124,7 @@ namespace Neo.Build.Core.SmartContract
         {
             var keyString = GetStorageKeyValueString(key, _storageSettings.KeyFormat);
 
-            _traceLogger.LogInformation(VMEventLog.StorageDelete,
+            _traceLogger.LogInformation(NeoDebugEvents.StorageDelete,
                 "{SysCall} id={Id}, readonly={ReadOnly}, key={Key}",
                 nameof(System_Runtime_Platform), storageContext.Id, storageContext.IsReadOnly, keyString);
 

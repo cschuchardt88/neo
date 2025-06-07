@@ -10,7 +10,7 @@
 // modifications are permitted.
 
 using Microsoft.Extensions.Logging;
-using Neo.Build.Core.Logging;
+using Neo.Build.Core.SmartContract.Debugger;
 using Neo.Extensions;
 using System.Linq;
 
@@ -20,13 +20,13 @@ namespace Neo.Build.Core.SmartContract
     {
         protected virtual bool SystemCryptoCheckSig(byte[] publicKey, byte[] signature)
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} key=0x{Key}, signature=0x{Signature}",
                 nameof(System_Crypto_CheckSig), publicKey.ToHexString(), signature.ToHexString());
 
             var result = CheckSig(publicKey, signature);
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Crypto_CheckSig), result);
 
@@ -38,13 +38,13 @@ namespace Neo.Build.Core.SmartContract
             var publicKeyStrings = publicKeys.Select(s => "0x" + s.ToHexString());
             var signatureStrings = signatures.Select(s => "0x" + s.ToHexString());
 
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} keys=[{Keys}], signatures=[{Signatures}]",
                 nameof(System_Crypto_CheckMultisig), string.Join(',', publicKeyStrings), string.Join(',', signatureStrings));
 
             var result = CheckMultisig(publicKeys, signatures);
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Crypto_CheckMultisig), result);
 

@@ -10,7 +10,7 @@
 // modifications are permitted.
 
 using Microsoft.Extensions.Logging;
-using Neo.Build.Core.Logging;
+using Neo.Build.Core.SmartContract.Debugger;
 using Neo.Cryptography.ECC;
 using Neo.Extensions;
 using Neo.SmartContract;
@@ -23,20 +23,20 @@ namespace Neo.Build.Core.SmartContract
     {
         protected virtual void SystemContractCall(UInt160 contractHash, string methodName, CallFlags callFlags, Array args)
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} hash={Contract}, method={Method}, flags={Flags}, args={Args}",
                 nameof(System_Contract_Call), contractHash, methodName, callFlags.ToString(), args.ToJson().ToString());
 
             CallContract(contractHash, methodName, callFlags, args);
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Contract_Call), ResultStack.ToJson());
         }
 
         protected virtual void SystemContractCallNative(byte version)
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} version=0x{Version}",
                 nameof(System_Contract_CallNative), version.ToString("x02"));
 
@@ -45,13 +45,13 @@ namespace Neo.Build.Core.SmartContract
 
         protected virtual CallFlags SystemContractGetCallFlags()
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall}",
                 nameof(System_Contract_GetCallFlags));
 
             var result = GetCallFlags();
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Contract_GetCallFlags), result.ToString());
 
@@ -60,13 +60,13 @@ namespace Neo.Build.Core.SmartContract
 
         protected virtual UInt160 SystemContractCreateStandardAccount(ECPoint publicKey)
         {
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} key={Key}",
                 nameof(System_Contract_CreateStandardAccount), publicKey);
 
             var result = CreateStandardAccount(publicKey);
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Contract_CreateStandardAccount), result);
 
@@ -77,13 +77,13 @@ namespace Neo.Build.Core.SmartContract
         {
             var publicKeyStrings = publicKeys.Select(s => s.ToString());
 
-            _traceLogger.LogInformation(VMEventLog.Call,
+            _traceLogger.LogInformation(NeoDebugEvents.Call,
                 "{SysCall} m={Count}, keys=[{Keys}]",
                 nameof(System_Contract_CreateMultisigAccount), verifyCount, string.Join(',', publicKeyStrings));
 
             var result = CreateMultisigAccount(verifyCount, publicKeys);
 
-            _traceLogger.LogInformation(VMEventLog.Result,
+            _traceLogger.LogInformation(NeoDebugEvents.Result,
                 "{SysCall} result={Result}",
                 nameof(System_Contract_CreateMultisigAccount), result);
 
@@ -92,7 +92,7 @@ namespace Neo.Build.Core.SmartContract
 
         protected virtual void SystemContractNativeOnPersist()
         {
-            _traceLogger.LogInformation(VMEventLog.Persist,
+            _traceLogger.LogInformation(NeoDebugEvents.Persist,
                 "{SysCall}",
                 nameof(System_Contract_NativeOnPersist));
 
@@ -101,7 +101,7 @@ namespace Neo.Build.Core.SmartContract
 
         protected virtual void SystemContractNativePostPersist()
         {
-            _traceLogger.LogInformation(VMEventLog.PostPersist,
+            _traceLogger.LogInformation(NeoDebugEvents.PostPersist,
                 "{SysCall}",
                 nameof(System_Contract_NativePostPersist));
 
