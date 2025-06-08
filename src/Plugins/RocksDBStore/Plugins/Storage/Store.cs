@@ -22,6 +22,9 @@ namespace Neo.Plugins.Storage
     {
         private readonly RocksDb _db;
 
+        /// <inheritdoc/>
+        public event IStore.OnNewSnapshotDelegate? OnNewSnapshot;
+
         public Store(string path)
         {
             _db = RocksDb.Open(Options.Default, Path.GetFullPath(path));
@@ -34,11 +37,13 @@ namespace Neo.Plugins.Storage
 
         public IStoreSnapshot GetSnapshot()
         {
-            return new Snapshot(this, _db);
+            var snapshot = new Snapshot(this, _db);
+            OnNewSnapshot?.Invoke(this, snapshot);
+            return snapshot;
         }
 
         /// <inheritdoc/>
-        public IEnumerable<(byte[] Key, byte[] Value)> Seek(byte[]? keyOrPrefix, SeekDirection direction = SeekDirection.Forward)
+        public IEnumerable<(byte[] Key, byte[] Value)> Find(byte[]? keyOrPrefix, SeekDirection direction = SeekDirection.Forward)
         {
             keyOrPrefix ??= [];
 

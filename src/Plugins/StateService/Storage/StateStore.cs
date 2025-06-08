@@ -9,6 +9,8 @@
 // Redistribution and use in source and binary forms with or without
 // modifications are permitted.
 
+#nullable enable
+
 using Akka.Actor;
 using Neo.Extensions;
 using Neo.Ledger;
@@ -25,49 +27,49 @@ namespace Neo.Plugins.StateService.Storage
 {
     class StateStore : UntypedActor
     {
-        private readonly StatePlugin system;
-        private readonly IStore store;
+        private readonly StatePlugin _system;
+        private readonly IStore _store;
         private const int MaxCacheCount = 100;
-        private readonly Dictionary<uint, StateRoot> cache = new Dictionary<uint, StateRoot>();
-        private StateSnapshot currentSnapshot;
-        private StateSnapshot _state_snapshot;
-        public UInt256 CurrentLocalRootHash => currentSnapshot.CurrentLocalRootHash();
-        public uint? LocalRootIndex => currentSnapshot.CurrentLocalRootIndex();
-        public uint? ValidatedRootIndex => currentSnapshot.CurrentValidatedRootIndex();
+        private readonly Dictionary<uint, StateRoot> _cache = [];
+        private StateSnapshot _currentSnapshot;
+        private StateSnapshot? _stateSnapshot;
+        public UInt256 CurrentLocalRootHash => _currentSnapshot.CurrentLocalRootHash();
+        public uint? LocalRootIndex => _currentSnapshot.CurrentLocalRootIndex();
+        public uint? ValidatedRootIndex => _currentSnapshot.CurrentValidatedRootIndex();
 
-        private static StateStore singleton;
+        private static StateStore? _singleton;
         public static StateStore Singleton
         {
             get
             {
-                while (singleton is null) Thread.Sleep(10);
-                return singleton;
+                while (_singleton is null) Thread.Sleep(10);
+                return _singleton;
             }
         }
 
         public StateStore(StatePlugin system, string path)
         {
-            if (singleton != null) throw new InvalidOperationException(nameof(StateStore));
-            this.system = system;
-            store = StatePlugin._system.LoadStore(path);
-            singleton = this;
-            StatePlugin._system.ActorSystem.EventStream.Subscribe(Self, typeof(Blockchain.RelayResult));
-            UpdateCurrentSnapshot();
+            if (_singleton != null) throw new InvalidOperationException(nameof(StateStore));
+            _system = system;
+            _store = StatePlugin.NeoSystem.LoadStore(path);
+            _singleton = this;
+            StatePlugin.NeoSystem.ActorSystem.EventStream.Subscribe(Self, typeof(Blockchain.RelayResult));
+            _currentSnapshot = GetSnapshot();
         }
 
         public void Dispose()
         {
-            store.Dispose();
+            _store.Dispose();
         }
 
         public StateSnapshot GetSnapshot()
         {
-            return new StateSnapshot(store);
+            return new StateSnapshot(_store);
         }
 
         public IStoreSnapshot GetStoreSnapshot()
         {
-            return store.GetSnapshot();
+            return _store.GetSnapshot();
         }
 
         protected override void OnReceive(object message)
@@ -90,6 +92,7 @@ namespace Neo.Plugins.StateService.Storage
         {
             if (payload.Data.Length == 0) return;
             if ((MessageType)payload.Data.Span[0] != MessageType.StateRoot) return;
+
             StateRoot message;
             try
             {
@@ -102,82 +105,92 @@ namespace Neo.Plugins.StateService.Storage
             OnNewStateRoot(message);
         }
 
-        private bool OnNewStateRoot(StateRoot state_root)
+        private bool OnNewStateRoot(StateRoot stateRoot)
         {
-            if (state_root?.Witness is null) return false;
-            if (ValidatedRootIndex != null && state_root.Index <= ValidatedRootIndex) return false;
+            if (stateRoot.Witness is null) return false;
+            if (ValidatedRootIndex != null && stateRoot.Index <= ValidatedRootIndex) return false;
             if (LocalRootIndex is null) throw new InvalidOperationException(nameof(StateStore) + " could not get local root index");
-            if (LocalRootIndex < state_root.Index && state_root.Index < LocalRootIndex + MaxCacheCount)
+            if (LocalRootIndex < stateRoot.Index && stateRoot.Index < LocalRootIndex + MaxCacheCount)
             {
-                cache.Add(state_root.Index, state_root);
+                _cache.Add(stateRoot.Index, stateRoot);
                 return true;
             }
-            using var state_snapshot = Singleton.GetSnapshot();
-            StateRoot local_root = state_snapshot.GetStateRoot(state_root.Index);
-            if (local_root is null || local_root.Witness != null) return false;
-            if (!state_root.Verify(StatePlugin._system.Settings, StatePlugin._system.StoreView)) return false;
-            if (local_root.RootHash != state_root.RootHash) return false;
-            state_snapshot.AddValidatedStateRoot(state_root);
-            state_snapshot.Commit();
+
+            using var stateSnapshot = Singleton.GetSnapshot();
+            var localRoot = stateSnapshot.GetStateRoot(stateRoot.Index);
+            if (localRoot is null || localRoot.Witness != null) return false;
+            if (!stateRoot.Verify(StatePlugin.NeoSystem.Settings, StatePlugin.NeoSystem.StoreView)) return false;
+            if (localRoot.RootHash != stateRoot.RootHash) return false;
+
+            stateSnapshot.AddValidatedStateRoot(stateRoot);
+            stateSnapshot.Commit();
             UpdateCurrentSnapshot();
-            system.Verifier?.Tell(new VerificationService.ValidatedRootPersisted { Index = state_root.Index });
+            _system.Verifier?.Tell(new VerificationService.ValidatedRootPersisted { Index = stateRoot.Index });
             return true;
         }
 
-        public void UpdateLocalStateRootSnapshot(uint height, IEnumerable<KeyValuePair<StorageKey, DataCache.Trackable>> change_set)
+        public void UpdateLocalStateRootSnapshot(uint height, IEnumerable<KeyValuePair<StorageKey, DataCache.Trackable>> changeSet)
         {
-            _state_snapshot = Singleton.GetSnapshot();
-            foreach (var item in change_set)
+            _stateSnapshot?.Dispose();
+            _stateSnapshot = Singleton.GetSnapshot();
+            foreach (var item in changeSet)
             {
                 switch (item.Value.State)
                 {
                     case TrackState.Added:
-                        _state_snapshot.Trie.Put(item.Key.ToArray(), item.Value.Item.ToArray());
+                        _stateSnapshot.Trie.Put(item.Key.ToArray(), item.Value.Item.ToArray());
                         break;
                     case TrackState.Changed:
-                        _state_snapshot.Trie.Put(item.Key.ToArray(), item.Value.Item.ToArray());
+                        _stateSnapshot.Trie.Put(item.Key.ToArray(), item.Value.Item.ToArray());
                         break;
                     case TrackState.Deleted:
-                        _state_snapshot.Trie.Delete(item.Key.ToArray());
+                        _stateSnapshot.Trie.Delete(item.Key.ToArray());
                         break;
                 }
             }
-            UInt256 root_hash = _state_snapshot.Trie.Root.Hash;
-            StateRoot state_root = new StateRoot
+
+            var rootHash = _stateSnapshot.Trie.Root.Hash;
+            var stateRoot = new StateRoot
             {
                 Version = StateRoot.CurrentVersion,
                 Index = height,
-                RootHash = root_hash,
+                RootHash = rootHash,
                 Witness = null,
             };
-            _state_snapshot.AddLocalStateRoot(state_root);
+            _stateSnapshot.AddLocalStateRoot(stateRoot);
         }
 
         public void UpdateLocalStateRoot(uint height)
         {
-            _state_snapshot?.Commit();
-            _state_snapshot = null;
+            if (_stateSnapshot != null)
+            {
+                _stateSnapshot.Commit();
+                _stateSnapshot.Dispose();
+                _stateSnapshot = null;
+            }
             UpdateCurrentSnapshot();
-            system.Verifier?.Tell(new VerificationService.BlockPersisted { Index = height });
+            _system.Verifier?.Tell(new VerificationService.BlockPersisted { Index = height });
             CheckValidatedStateRoot(height);
         }
 
         private void CheckValidatedStateRoot(uint index)
         {
-            if (cache.TryGetValue(index, out StateRoot state_root))
+            if (_cache.TryGetValue(index, out var stateRoot))
             {
-                cache.Remove(index);
-                Self.Tell(state_root);
+                _cache.Remove(index);
+                Self.Tell(stateRoot);
             }
         }
 
         private void UpdateCurrentSnapshot()
         {
-            Interlocked.Exchange(ref currentSnapshot, GetSnapshot())?.Dispose();
+            Interlocked.Exchange(ref _currentSnapshot, GetSnapshot())?.Dispose();
         }
 
         protected override void PostStop()
         {
+            _currentSnapshot?.Dispose();
+            _store?.Dispose();
             base.PostStop();
         }
 
@@ -187,3 +200,5 @@ namespace Neo.Plugins.StateService.Storage
         }
     }
 }
+
+#nullable disable

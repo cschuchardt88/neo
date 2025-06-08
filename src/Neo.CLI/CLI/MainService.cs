@@ -13,10 +13,10 @@ using Akka.Actor;
 using Neo.ConsoleService;
 using Neo.Extensions;
 using Neo.Json;
-using Neo.Ledger;
 using Neo.Network.P2P;
 using Neo.Network.P2P.Payloads;
 using Neo.Plugins;
+using Neo.Sign;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native;
@@ -27,13 +27,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Numerics;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Array = System.Array;
@@ -142,9 +140,9 @@ namespace Neo.CLI
             base.RunConsole();
         }
 
-        public void CreateWallet(string path, string password, bool createDefaultAccount = true)
+        public void CreateWallet(string path, string password, bool createDefaultAccount = true, string? walletName = null)
         {
-            Wallet wallet = Wallet.Create(null, path, password, NeoSystem.Settings);
+            Wallet wallet = Wallet.Create(walletName, path, password, NeoSystem.Settings);
             if (wallet == null)
             {
                 ConsoleHelper.Warning("Wallet files in that format are not supported, please use a .json or .db3 file extension.");
@@ -158,80 +156,9 @@ namespace Neo.CLI
                 ConsoleHelper.Info("ScriptHash: ", $"{account.ScriptHash}");
             }
             wallet.Save();
+
             CurrentWallet = wallet;
-        }
-
-        private IEnumerable<Block> GetBlocks(Stream stream, bool read_start = false)
-        {
-            using BinaryReader r = new BinaryReader(stream);
-            uint start = read_start ? r.ReadUInt32() : 0;
-            uint count = r.ReadUInt32();
-            uint end = start + count - 1;
-            uint currentHeight = NativeContract.Ledger.CurrentIndex(NeoSystem.StoreView);
-            if (end <= currentHeight) yield break;
-            for (uint height = start; height <= end; height++)
-            {
-                var size = r.ReadInt32();
-                if (size > Message.PayloadMaxSize)
-                    throw new ArgumentException($"Block {height} exceeds the maximum allowed size");
-
-                byte[] array = r.ReadBytes(size);
-                if (height > currentHeight)
-                {
-                    Block block = array.AsSerializable<Block>();
-                    yield return block;
-                }
-            }
-        }
-
-        private IEnumerable<Block> GetBlocksFromFile()
-        {
-            const string pathAcc = "chain.acc";
-            if (File.Exists(pathAcc))
-                using (FileStream fs = new(pathAcc, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    foreach (var block in GetBlocks(fs))
-                        yield return block;
-
-            const string pathAccZip = pathAcc + ".zip";
-            if (File.Exists(pathAccZip))
-                using (FileStream fs = new(pathAccZip, FileMode.Open, FileAccess.Read, FileShare.Read))
-                using (ZipArchive zip = new(fs, ZipArchiveMode.Read))
-                using (Stream? zs = zip.GetEntry(pathAcc)?.Open())
-                {
-                    if (zs is not null)
-                    {
-                        foreach (var block in GetBlocks(zs))
-                            yield return block;
-                    }
-                }
-
-            var paths = Directory.EnumerateFiles(".", "chain.*.acc", SearchOption.TopDirectoryOnly).Concat(Directory.EnumerateFiles(".", "chain.*.acc.zip", SearchOption.TopDirectoryOnly)).Select(p => new
-            {
-                FileName = Path.GetFileName(p),
-                Start = uint.Parse(Regex.Match(p, @"\d+").Value),
-                IsCompressed = p.EndsWith(".zip")
-            }).OrderBy(p => p.Start);
-
-            uint height = NativeContract.Ledger.CurrentIndex(NeoSystem.StoreView);
-            foreach (var path in paths)
-            {
-                if (path.Start > height + 1) break;
-                if (path.IsCompressed)
-                    using (FileStream fs = new(path.FileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    using (ZipArchive zip = new(fs, ZipArchiveMode.Read))
-                    using (Stream? zs = zip.GetEntry(Path.GetFileNameWithoutExtension(path.FileName))?.Open())
-                    {
-                        if (zs is not null)
-                        {
-                            foreach (var block in GetBlocks(zs, true))
-                                yield return block;
-                        }
-                    }
-                else
-                    using (FileStream fs = new(path.FileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-                        foreach (var block in GetBlocks(fs, true))
-                            yield return block;
-            }
+            SignerManager.RegisterSigner(wallet.Name, wallet);
         }
 
         private bool NoWallet()
@@ -241,108 +168,77 @@ namespace Neo.CLI
             return true;
         }
 
-        private byte[] LoadDeploymentScript(string nefFilePath, string? manifestFilePath, JObject? data, out NefFile nef, out ContractManifest manifest)
+        private static ContractParameter? LoadScript(string nefFilePath, string? manifestFilePath, JObject? data,
+            out NefFile nef, out ContractManifest manifest)
         {
             if (string.IsNullOrEmpty(manifestFilePath))
-            {
                 manifestFilePath = Path.ChangeExtension(nefFilePath, ".manifest.json");
-            }
 
             // Read manifest
-
             var info = new FileInfo(manifestFilePath);
-            if (!info.Exists || info.Length >= Transaction.MaxTransactionSize)
-            {
-                throw new ArgumentException(nameof(manifestFilePath));
-            }
+            if (!info.Exists)
+                throw new ArgumentException("Manifest file not found", nameof(manifestFilePath));
+            if (info.Length >= Transaction.MaxTransactionSize)
+                throw new ArgumentException("Manifest file is too large", nameof(manifestFilePath));
 
             manifest = ContractManifest.Parse(File.ReadAllBytes(manifestFilePath));
 
             // Read nef
-
             info = new FileInfo(nefFilePath);
-            if (!info.Exists || info.Length >= Transaction.MaxTransactionSize)
-            {
-                throw new ArgumentException(nameof(nefFilePath));
-            }
+            if (!info.Exists) throw new ArgumentException("Nef file not found", nameof(nefFilePath));
+            if (info.Length >= Transaction.MaxTransactionSize)
+                throw new ArgumentException("Nef file is too large", nameof(nefFilePath));
 
             nef = File.ReadAllBytes(nefFilePath).AsSerializable<NefFile>();
-
-            ContractParameter? dataParameter = null;
-            if (data is not null)
-                try
-                {
-                    dataParameter = ContractParameter.FromJson(data);
-                }
-                catch
-                {
-                    throw new FormatException("invalid data");
-                }
 
             // Basic script checks
             nef.Script.IsScriptValid(manifest.Abi);
 
-            // Build script
-
-            using (ScriptBuilder sb = new ScriptBuilder())
+            if (data is not null)
             {
-                if (dataParameter is not null)
-                    sb.EmitDynamicCall(NativeContract.ContractManagement.Hash, "deploy", nef.ToArray(), manifest.ToJson().ToString(), dataParameter);
+                try
+                {
+                    return ContractParameter.FromJson(data);
+                }
+                catch (Exception ex)
+                {
+                    throw new FormatException("invalid data", ex);
+                }
+            }
+
+            return null;
+        }
+
+        private byte[] LoadDeploymentScript(string nefFilePath, string? manifestFilePath, JObject? data,
+            out NefFile nef, out ContractManifest manifest)
+        {
+            var parameter = LoadScript(nefFilePath, manifestFilePath, data, out nef, out manifest);
+            var manifestJson = manifest.ToJson().ToString();
+
+            // Build script
+            using (var sb = new ScriptBuilder())
+            {
+                if (parameter is not null)
+                    sb.EmitDynamicCall(NativeContract.ContractManagement.Hash, "deploy", nef.ToArray(), manifestJson, parameter);
                 else
-                    sb.EmitDynamicCall(NativeContract.ContractManagement.Hash, "deploy", nef.ToArray(), manifest.ToJson().ToString());
+                    sb.EmitDynamicCall(NativeContract.ContractManagement.Hash, "deploy", nef.ToArray(), manifestJson);
                 return sb.ToArray();
             }
         }
 
-        private byte[] LoadUpdateScript(UInt160 scriptHash, string nefFilePath, string manifestFilePath, JObject? data, out NefFile nef, out ContractManifest manifest)
+        private byte[] LoadUpdateScript(UInt160 scriptHash, string nefFilePath, string manifestFilePath, JObject? data,
+            out NefFile nef, out ContractManifest manifest)
         {
-            if (string.IsNullOrEmpty(manifestFilePath))
-            {
-                manifestFilePath = Path.ChangeExtension(nefFilePath, ".manifest.json");
-            }
-
-            // Read manifest
-
-            var info = new FileInfo(manifestFilePath);
-            if (!info.Exists || info.Length >= Transaction.MaxTransactionSize)
-            {
-                throw new ArgumentException(nameof(manifestFilePath));
-            }
-
-            manifest = ContractManifest.Parse(File.ReadAllBytes(manifestFilePath));
-
-            // Read nef
-
-            info = new FileInfo(nefFilePath);
-            if (!info.Exists || info.Length >= Transaction.MaxTransactionSize)
-            {
-                throw new ArgumentException(nameof(nefFilePath));
-            }
-
-            nef = File.ReadAllBytes(nefFilePath).AsSerializable<NefFile>();
-
-            ContractParameter? dataParameter = null;
-            if (data is not null)
-                try
-                {
-                    dataParameter = ContractParameter.FromJson(data);
-                }
-                catch
-                {
-                    throw new FormatException("invalid data");
-                }
-
-            // Basic script checks
-            nef.Script.IsScriptValid(manifest.Abi);
+            var parameter = LoadScript(nefFilePath, manifestFilePath, data, out nef, out manifest);
+            var manifestJson = manifest.ToJson().ToString();
 
             // Build script
-
-            using (ScriptBuilder sb = new ScriptBuilder())
+            using (var sb = new ScriptBuilder())
             {
-                if (dataParameter is null)
-                    sb.EmitDynamicCall(scriptHash, "update", nef.ToArray(), manifest.ToJson().ToString());
+                if (parameter is null)
+                    sb.EmitDynamicCall(scriptHash, "update", nef.ToArray(), manifestJson);
                 else
-                    sb.EmitDynamicCall(scriptHash, "update", nef.ToArray(), manifest.ToJson().ToString(), dataParameter);
+                    sb.EmitDynamicCall(scriptHash, "update", nef.ToArray(), manifestJson, parameter);
                 return sb.ToArray();
             }
         }
@@ -363,27 +259,29 @@ namespace Neo.CLI
         {
             if (!File.Exists(path))
             {
-                throw new FileNotFoundException();
+                throw new FileNotFoundException($"Wallet file \"{path}\" not found.");
             }
+
+            if (CurrentWallet is not null) SignerManager.UnregisterSigner(CurrentWallet.Name);
 
             CurrentWallet = Wallet.Open(path, password, NeoSystem.Settings) ?? throw new NotSupportedException();
+            SignerManager.RegisterSigner(CurrentWallet.Name, CurrentWallet);
         }
 
-        public async void Start(CommandLineOptions options)
+        private static void ShowDllNotFoundError(DllNotFoundException ex)
         {
-            if (NeoSystem != null) return;
-            bool verifyImport = !(options.NoVerify ?? false);
-
-            Utility.LogLevel = options.Verbose;
-            ProtocolSettings protocol = ProtocolSettings.Load("config.json");
-            CustomProtocolSettings(options, protocol);
-            CustomApplicationSettings(options, Settings.Default);
-            try
+            void DisplayError(string primaryMessage, string? secondaryMessage = null)
             {
-                NeoSystem = new NeoSystem(protocol, Settings.Default.Storage.Engine,
-                    string.Format(Settings.Default.Storage.Path, protocol.Network.ToString("X8")));
+                ConsoleHelper.Error(primaryMessage + Environment.NewLine +
+                                    (secondaryMessage != null ? secondaryMessage + Environment.NewLine : "") +
+                                    "Press any key to exit.");
+                Console.ReadKey();
+                Environment.Exit(-1);
             }
-            catch (DllNotFoundException ex) when (ex.Message.Contains("libleveldb"))
+
+            const string neoUrl = "https://github.com/neo-project/neo/releases";
+            const string levelDbUrl = "https://github.com/neo-ngd/leveldb/releases";
+            if (ex.Message.Contains("libleveldb"))
             {
                 if (OperatingSystem.IsWindows())
                 {
@@ -394,31 +292,47 @@ namespace Neo.CLI
                     }
                     else
                     {
-                        DisplayError("DLL not found, please get libleveldb.dll.",
-                            "Download from https://github.com/neo-ngd/leveldb/releases");
+                        DisplayError("DLL not found, please get libleveldb.dll.", $"Download from {levelDbUrl}");
                     }
                 }
                 else if (OperatingSystem.IsLinux())
                 {
                     DisplayError("Shared library libleveldb.so not found, please get libleveldb.so.",
-                        "Use command \"sudo apt-get install libleveldb-dev\" in terminal or download from https://github.com/neo-ngd/leveldb/releases");
+                        $"Use command \"sudo apt-get install libleveldb-dev\" in terminal or download from {levelDbUrl}");
                 }
                 else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
                 {
                     DisplayError("Shared library libleveldb.dylib not found, please get libleveldb.dylib.",
-                        "Use command \"brew install leveldb\" in terminal or download from https://github.com/neo-ngd/leveldb/releases");
+                        $"Use command \"brew install leveldb\" in terminal or download from {levelDbUrl}");
                 }
                 else
                 {
-                    DisplayError("Neo CLI is broken, please reinstall it.",
-                        "Download from https://github.com/neo-project/neo/releases");
+                    DisplayError("Neo CLI is broken, please reinstall it.", $"Download from {neoUrl}");
                 }
-                return;
             }
-            catch (DllNotFoundException)
+            else
             {
-                DisplayError("Neo CLI is broken, please reinstall it.",
-                    "Download from https://github.com/neo-project/neo/releases");
+                DisplayError("Neo CLI is broken, please reinstall it.", $"Download from {neoUrl}");
+            }
+        }
+
+        public async void Start(CommandLineOptions options)
+        {
+            if (NeoSystem != null) return;
+            bool verifyImport = !(options.NoVerify ?? false);
+
+            Utility.LogLevel = options.Verbose;
+            var protocol = ProtocolSettings.Load("config.json");
+            CustomProtocolSettings(options, protocol);
+            CustomApplicationSettings(options, Settings.Default);
+            try
+            {
+                NeoSystem = new NeoSystem(protocol, Settings.Default.Storage.Engine,
+                    string.Format(Settings.Default.Storage.Path, protocol.Network.ToString("X8")));
+            }
+            catch (DllNotFoundException ex)
+            {
+                ShowDllNotFoundError(ex);
                 return;
             }
 
@@ -427,42 +341,29 @@ namespace Neo.CLI
             LocalNode = NeoSystem.LocalNode.Ask<LocalNode>(new LocalNode.GetInstance()).Result;
 
             // installing plugins
-            var installTasks = options.Plugins?.Select(p => p).Where(p => !string.IsNullOrEmpty(p)).ToList().Select(p => InstallPluginAsync(p));
+            var installTasks = options.Plugins?.Select(p => p)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToList()
+                .Select(p => InstallPluginAsync(p));
             if (installTasks is not null)
             {
                 await Task.WhenAll(installTasks);
             }
+
             foreach (var plugin in Plugin.Plugins)
             {
                 // Register plugins commands
-
                 RegisterCommand(plugin, plugin.Name);
             }
 
-            using (IEnumerator<Block> blocksBeingImported = GetBlocksFromFile().GetEnumerator())
-            {
-                while (true)
-                {
-                    List<Block> blocksToImport = new List<Block>();
-                    for (int i = 0; i < 10; i++)
-                    {
-                        if (!blocksBeingImported.MoveNext()) break;
-                        blocksToImport.Add(blocksBeingImported.Current);
-                    }
-                    if (blocksToImport.Count == 0) break;
-                    await NeoSystem.Blockchain.Ask<Blockchain.ImportCompleted>(new Blockchain.Import
-                    {
-                        Blocks = blocksToImport,
-                        Verify = verifyImport
-                    });
-                    if (NeoSystem is null) return;
-                }
-            }
+            await ImportBlocksFromFile(verifyImport);
+
             NeoSystem.StartNode(new ChannelsConfig
             {
                 Tcp = new IPEndPoint(IPAddress.Any, Settings.Default.P2P.Port),
                 MinDesiredConnections = Settings.Default.P2P.MinDesiredConnections,
                 MaxConnections = Settings.Default.P2P.MaxConnections,
+                MaxKnownHashes = Settings.Default.P2P.MaxKnownHashes,
                 MaxConnectionsPerAddress = Settings.Default.P2P.MaxConnectionsPerAddress
             });
 
@@ -472,38 +373,29 @@ namespace Neo.CLI
                 {
                     if (Settings.Default.UnlockWallet.Path is null)
                     {
-                        throw new InvalidOperationException("UnlockWallet.Path must be defined");
+                        ConsoleHelper.Error("UnlockWallet.Path must be defined");
                     }
                     else if (Settings.Default.UnlockWallet.Password is null)
                     {
-                        throw new InvalidOperationException("UnlockWallet.Password must be defined");
+                        ConsoleHelper.Error("UnlockWallet.Password must be defined");
                     }
-
-                    OpenWallet(Settings.Default.UnlockWallet.Path, Settings.Default.UnlockWallet.Password);
+                    else
+                    {
+                        OpenWallet(Settings.Default.UnlockWallet.Path, Settings.Default.UnlockWallet.Password);
+                    }
                 }
                 catch (FileNotFoundException)
                 {
-                    ConsoleHelper.Warning($"wallet file \"{Settings.Default.UnlockWallet.Path}\" not found.");
+                    ConsoleHelper.Warning($"wallet file \"{Path.GetFullPath(Settings.Default.UnlockWallet.Path!)}\" not found.");
                 }
                 catch (CryptographicException)
                 {
-                    ConsoleHelper.Error($"Failed to open file \"{Settings.Default.UnlockWallet.Path}\"");
+                    ConsoleHelper.Error($"Failed to open file \"{Path.GetFullPath(Settings.Default.UnlockWallet.Path!)}\"");
                 }
                 catch (Exception ex)
                 {
                     ConsoleHelper.Error(ex.GetBaseException().Message);
                 }
-            }
-
-            return;
-
-            void DisplayError(string primaryMessage, string? secondaryMessage = null)
-            {
-                ConsoleHelper.Error(primaryMessage + Environment.NewLine +
-                                    (secondaryMessage != null ? secondaryMessage + Environment.NewLine : "") +
-                                    "Press any key to exit.");
-                Console.ReadKey();
-                Environment.Exit(-1);
             }
         }
 
@@ -511,60 +403,6 @@ namespace Neo.CLI
         {
             Dispose_Logger();
             Interlocked.Exchange(ref _neoSystem, null)?.Dispose();
-        }
-
-        private void WriteBlocks(uint start, uint count, string path, bool writeStart)
-        {
-            uint end = start + count - 1;
-            using FileStream fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.WriteThrough);
-            if (fs.Length > 0)
-            {
-                byte[] buffer = new byte[sizeof(uint)];
-                if (writeStart)
-                {
-                    fs.Seek(sizeof(uint), SeekOrigin.Begin);
-                    fs.ReadExactly(buffer);
-                    start += BitConverter.ToUInt32(buffer, 0);
-                    fs.Seek(sizeof(uint), SeekOrigin.Begin);
-                }
-                else
-                {
-                    fs.ReadExactly(buffer);
-                    start = BitConverter.ToUInt32(buffer, 0);
-                    fs.Seek(0, SeekOrigin.Begin);
-                }
-            }
-            else
-            {
-                if (writeStart)
-                {
-                    fs.Write(BitConverter.GetBytes(start), 0, sizeof(uint));
-                }
-            }
-            if (start <= end)
-                fs.Write(BitConverter.GetBytes(count), 0, sizeof(uint));
-            fs.Seek(0, SeekOrigin.End);
-            Console.WriteLine("Export block from " + start + " to " + end);
-
-            using (var percent = new ConsolePercent(start, end))
-            {
-                for (uint i = start; i <= end; i++)
-                {
-                    Block block = NativeContract.Ledger.GetBlock(NeoSystem.StoreView, i);
-                    byte[] array = block.ToArray();
-                    fs.Write(BitConverter.GetBytes(array.Length), 0, sizeof(int));
-                    fs.Write(array, 0, array.Length);
-                    percent.Value = i;
-                }
-            }
-        }
-
-        private static void WriteLineWithoutFlicker(string message = "", int maxWidth = 80)
-        {
-            if (message.Length > 0) Console.Write(message);
-            var spacesToErase = maxWidth - message.Length;
-            if (spacesToErase < 0) spacesToErase = 0;
-            Console.WriteLine(new string(' ', spacesToErase));
         }
 
         /// <summary>
@@ -577,9 +415,8 @@ namespace Neo.CLI
         {
             if (NoWallet()) return;
 
-            Signer[] signers = Array.Empty<Signer>();
+            var signers = Array.Empty<Signer>();
             var snapshot = NeoSystem.StoreView;
-
             if (account != null)
             {
                 signers = CurrentWallet!.GetAccounts()
@@ -590,10 +427,9 @@ namespace Neo.CLI
 
             try
             {
-                Transaction tx = CurrentWallet!.MakeTransaction(snapshot, script, account, signers, maxGas: datoshi);
+                var tx = CurrentWallet!.MakeTransaction(snapshot, script, account, signers, maxGas: datoshi);
                 ConsoleHelper.Info("Invoking script with: ", $"'{Convert.ToBase64String(tx.Script.Span)}'");
-
-                using (ApplicationEngine engine = ApplicationEngine.Run(tx.Script, snapshot, container: tx, settings: NeoSystem.Settings, gas: datoshi))
+                using (var engine = ApplicationEngine.Run(tx.Script, snapshot, container: tx, settings: NeoSystem.Settings, gas: datoshi))
                 {
                     PrintExecutionOutput(engine, true);
                     if (engine.State == VMState.FAULT) return;
@@ -623,10 +459,10 @@ namespace Neo.CLI
         /// <param name="showStack">Show result stack if it is true</param>
         /// <param name="datoshi">Max fee for running the script, in the unit of datoshi, 1 datoshi = 1e-8 GAS</param>
         /// <returns>Return true if it was successful</returns>
-        private bool OnInvokeWithResult(UInt160 scriptHash, string operation, out StackItem result, IVerifiable? verifiable = null, JArray? contractParameters = null, bool showStack = true, long datoshi = TestModeGas)
+        private bool OnInvokeWithResult(UInt160 scriptHash, string operation, out StackItem result,
+            IVerifiable? verifiable = null, JArray? contractParameters = null, bool showStack = true, long datoshi = TestModeGas)
         {
-            List<ContractParameter> parameters = new();
-
+            var parameters = new List<ContractParameter>();
             if (contractParameters != null)
             {
                 foreach (var contractParameter in contractParameters)
@@ -638,7 +474,7 @@ namespace Neo.CLI
                 }
             }
 
-            ContractState contract = NativeContract.ContractManagement.GetContract(NeoSystem.StoreView, scriptHash);
+            var contract = NativeContract.ContractManagement.GetContract(NeoSystem.StoreView, scriptHash);
             if (contract == null)
             {
                 ConsoleHelper.Error("Contract does not exist.");
@@ -656,8 +492,7 @@ namespace Neo.CLI
             }
 
             byte[] script;
-
-            using (ScriptBuilder scriptBuilder = new ScriptBuilder())
+            using (var scriptBuilder = new ScriptBuilder())
             {
                 scriptBuilder.EmitDynamicCall(scriptHash, operation, parameters.ToArray());
                 script = scriptBuilder.ToArray();
@@ -669,7 +504,7 @@ namespace Neo.CLI
                 tx.Script = script;
             }
 
-            using ApplicationEngine engine = ApplicationEngine.Run(script, NeoSystem.StoreView, container: verifiable, settings: NeoSystem.Settings, gas: datoshi);
+            using var engine = ApplicationEngine.Run(script, NeoSystem.StoreView, container: verifiable, settings: NeoSystem.Settings, gas: datoshi);
             PrintExecutionOutput(engine, showStack);
             result = engine.State == VMState.FAULT ? StackItem.Null : engine.ResultStack.Peek();
             return engine.State != VMState.FAULT;

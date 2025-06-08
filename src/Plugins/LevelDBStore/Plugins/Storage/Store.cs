@@ -25,6 +25,9 @@ namespace Neo.Plugins.Storage
         private readonly DB _db;
         private readonly Options _options;
 
+        /// <inheritdoc/>
+        public event IStore.OnNewSnapshotDelegate? OnNewSnapshot;
+
         public Store(string path)
         {
             _options = new Options
@@ -47,8 +50,12 @@ namespace Neo.Plugins.Storage
             _options.Dispose();
         }
 
-        public IStoreSnapshot GetSnapshot() =>
-            new Snapshot(this, _db);
+        public IStoreSnapshot GetSnapshot()
+        {
+            var snapshot = new Snapshot(this, _db);
+            OnNewSnapshot?.Invoke(this, snapshot);
+            return snapshot;
+        }
 
         public void Put(byte[] key, byte[] value) =>
             _db.Put(WriteOptions.Default, key, value);
@@ -69,7 +76,7 @@ namespace Neo.Plugins.Storage
         }
 
         /// <inheritdoc/>
-        public IEnumerable<(byte[], byte[])> Seek(byte[]? keyOrPrefix, SeekDirection direction = SeekDirection.Forward) =>
+        public IEnumerable<(byte[], byte[])> Find(byte[]? keyOrPrefix, SeekDirection direction = SeekDirection.Forward) =>
             _db.Seek(ReadOptions.Default, keyOrPrefix, direction);
 
         public IEnumerator<KeyValuePair<byte[], byte[]>> GetEnumerator() =>

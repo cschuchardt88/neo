@@ -19,10 +19,22 @@ namespace Neo.Persistence
     /// This interface provides methods for reading, writing from/to database. Developers should implement this interface to provide new storage engines for NEO.
     /// </summary>
     public interface IStore :
-        IRawReadOnlyStore,
+        IReadOnlyStore<byte[], byte[]>,
         IWriteStore<byte[], byte[]>,
         IDisposable
     {
+        /// <summary>
+        /// Delegate for OnNewSnapshot
+        /// </summary>
+        /// <param name="sender">Store</param>
+        /// <param name="snapshot">Snapshot</param>
+        public delegate void OnNewSnapshotDelegate(IStore sender, IStoreSnapshot snapshot);
+
+        /// <summary>
+        /// Event raised when a new snapshot is created
+        /// </summary>
+        public event OnNewSnapshotDelegate? OnNewSnapshot;
+
         /// <summary>
         /// Creates a snapshot of the database.
         /// </summary>
