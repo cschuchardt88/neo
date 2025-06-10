@@ -11,10 +11,9 @@
 
 namespace Neo.Build.Core.Logging
 {
-    internal static class VMEventLog
+    internal static class DebugEventLog
     {
         public const int Fault = 100;
-        public const int Result = 101;
 
         public const int Create = 200;
         public const int Load = 201;
