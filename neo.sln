@@ -95,6 +95,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Neo.Plugins.SignClient.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Neo.Cryptography.MPTTrie.Benchmarks", "benchmarks\Neo.Cryptography.MPTTrie.Benchmarks\Neo.Cryptography.MPTTrie.Benchmarks.csproj", "{69B0D53B-D97A-4315-B205-CCEBB7289EA9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PowerShell", "PowerShell", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Neo.PowerShell.Cmdlets", "src\sdk\Neo.PowerShell.Cmdlets\Neo.PowerShell.Cmdlets.csproj", "{56596CCD-EFF2-4D62-98A8-541AE487CE81}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -265,6 +269,10 @@ Global
 		{69B0D53B-D97A-4315-B205-CCEBB7289EA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69B0D53B-D97A-4315-B205-CCEBB7289EA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69B0D53B-D97A-4315-B205-CCEBB7289EA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56596CCD-EFF2-4D62-98A8-541AE487CE81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56596CCD-EFF2-4D62-98A8-541AE487CE81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56596CCD-EFF2-4D62-98A8-541AE487CE81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56596CCD-EFF2-4D62-98A8-541AE487CE81}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -312,6 +320,8 @@ Global
 		{CAD55942-48A3-4526-979D-7519FADF19FE} = {C2DC830A-327A-42A7-807D-295216D30DBB}
 		{E2CFEAA1-45F2-4075-94ED-866862C6863F} = {7F257712-D033-47FF-B439-9D4320D06599}
 		{69B0D53B-D97A-4315-B205-CCEBB7289EA9} = {C25EB0B0-0CAC-4CC1-8F36-F9229EFB99EC}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {B5339DF7-5D1D-43BA-B332-74B825E1770E}
+		{56596CCD-EFF2-4D62-98A8-541AE487CE81} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BCBA19D9-F868-4C6D-8061-A2B91E06E3EC}
