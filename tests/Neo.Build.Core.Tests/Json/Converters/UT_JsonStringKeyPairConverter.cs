@@ -47,9 +47,9 @@ namespace Neo.Build.Core.Tests.Json.Converters
             var keyPair = KeyPairHelper.CreateNew();
             var expectedBytes = keyPair.PrivateKey;
             var expectedJsonString = $"{{\"test\":\"{expectedBytes.ToHexString()}\"}}";
-            var expectedJsonObj = new TestJson() { Test = keyPair, };
+            var expectedJsonObject = new TestJson() { Test = keyPair, };
 
-            var actualJsonString = JsonSerializer.Serialize(expectedJsonObj, TestDefaults.JsonDefaultSerializerOptions);
+            var actualJsonString = JsonSerializer.Serialize(expectedJsonObject, TestDefaults.JsonDefaultSerializerOptions);
 
             Assert.AreEqual(expectedJsonString, actualJsonString);
         }

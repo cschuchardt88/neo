@@ -1,6 +1,6 @@
 // Copyright (C) 2015-2025 The Neo Project.
 //
-// UT_JsonStringUInt160Converter.cs file belongs to the neo project and is free
+// UT_JsonStringAddressConverter.cs file belongs to the neo project and is free
 // software distributed under the MIT software license, see the
 // accompanying file LICENSE in the main directory of the
 // repository or http://www.opensource.org/licenses/mit-license.php
@@ -9,37 +9,42 @@
 // Redistribution and use in source and binary forms with or without
 // modifications are permitted.
 
+using Neo.Build.Core.Json.Converters;
 using Neo.Build.Core.Tests.Helpers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Neo.Build.Core.Tests.Json.Converters
 {
     [TestClass]
-    public class UT_JsonStringUInt160Converter
+    public class UT_JsonStringAddressConverter
     {
         private class TestJson
         {
-            public UInt160? Test { get; set; }
+            [JsonConverter(typeof(JsonStringHexFormatConverter))]
+            public byte[]? Script { get; set; }
         };
 
         [TestMethod]
         public void TestReadJson()
         {
-            UInt160 expectedScriptHash = "0xff00000000000000000000000000000000000001";
-            var expectedJsonString = $"{{\"test\":\"{expectedScriptHash}\"}}";
+            var expectedScriptBytes = new byte[] { 0, 1, 2, 3 };
+            var expectedScriptString = "00010203";
+            var expectedJsonString = $"{{\"script\":\"{expectedScriptString}\"}}";
 
             var actualObject = JsonSerializer.Deserialize<TestJson>(expectedJsonString, TestDefaults.JsonDefaultSerializerOptions);
-            var actualScriptHash = actualObject!.Test!;
+            var actualScriptBytes = actualObject?.Script;
 
-            Assert.AreEqual(expectedScriptHash, actualScriptHash);
+            Assert.IsNotNull(actualScriptBytes);
+            CollectionAssert.AreEqual(expectedScriptBytes, actualScriptBytes);
         }
 
         [TestMethod]
         public void TestWriteJson()
         {
-            UInt160 expectedScriptHash = "0xff00000000000000000000000000000000000001";
-            var expectedJsonString = $"{{\"test\":\"{expectedScriptHash}\"}}";
-            var expectedJsonObject = new TestJson() { Test = expectedScriptHash, };
+            var expectedScriptString = "00010203";
+            var expectedJsonString = $"{{\"script\":\"{expectedScriptString}\"}}";
+            var expectedJsonObject = new TestJson { Script = [0, 1, 2, 3] };
 
             var actualJsonString = JsonSerializer.Serialize(expectedJsonObject, TestDefaults.JsonDefaultSerializerOptions);
 

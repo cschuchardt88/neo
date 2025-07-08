@@ -40,9 +40,9 @@ namespace Neo.Build.Core.Tests.Json.Converters
         {
             var expectedPointString = "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296";
             var expectedJsonString = $"{{\"test\":\"{expectedPointString}\"}}";
-            var expectedJsonObj = new TestJson() { Test = ECPoint.Parse(expectedPointString, ECCurve.Secp256r1), };
+            var expectedJsonObject = new TestJson() { Test = ECPoint.Parse(expectedPointString, ECCurve.Secp256r1), };
 
-            var actualJsonString = JsonSerializer.Serialize(expectedJsonObj, TestDefaults.JsonDefaultSerializerOptions);
+            var actualJsonString = JsonSerializer.Serialize(expectedJsonObject, TestDefaults.JsonDefaultSerializerOptions);
 
             Assert.AreEqual(expectedJsonString, actualJsonString);
         }
