@@ -73,6 +73,8 @@ namespace Neo.Build.Core.Storage
                     _db.Delete(kvp.Key);
                 else
                     _db.Put(kvp.Key, kvp.Value);
+
+                _writeBatch.Remove(kvp.Key, out _);
             }
         }
 
