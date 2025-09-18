@@ -15,7 +15,7 @@ using Neo.SmartContract;
 
 namespace Neo.Wallets.SQLite
 {
-    class VerificationContract : SmartContract.Contract, IEquatable<VerificationContract>, ISerializable
+    internal class VerificationContract : SmartContract.Contract, IEquatable<VerificationContract>, ISerializable
     {
         public int Size => ParameterList.GetVarSize() + Script.GetVarSize();
 
@@ -32,14 +32,14 @@ namespace Neo.Wallets.SQLite
             Script = reader.ReadVarMemory().ToArray();
         }
 
-        public bool Equals(VerificationContract other)
+        public bool Equals(VerificationContract? other)
         {
             if (ReferenceEquals(this, other)) return true;
             if (other is null) return false;
             return ScriptHash.Equals(other.ScriptHash);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as VerificationContract);
         }

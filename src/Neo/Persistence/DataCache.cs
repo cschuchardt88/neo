@@ -15,6 +15,7 @@ using Neo.Extensions;
 using Neo.SmartContract;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -29,6 +30,7 @@ namespace Neo.Persistence
         /// <summary>
         /// Represents an entry in the cache.
         /// </summary>
+        [DebuggerDisplay("{Item.ToString()}, State = {State.ToString()}")]
         public class Trackable(StorageItem item, TrackState state)
         {
             /// <summary>
@@ -271,11 +273,7 @@ namespace Neo.Persistence
             var seek_prefix = key_prefix;
             if (direction == SeekDirection.Backward)
             {
-                if (key_prefix == null)
-                {
-                    // Backwards seek for null prefix is not supported for now.
-                    throw new ArgumentNullException(nameof(key_prefix));
-                }
+                ArgumentNullException.ThrowIfNull(key_prefix);
                 if (key_prefix.Length == 0)
                 {
                     // Backwards seek for zero prefix is not supported for now.
@@ -370,9 +368,7 @@ namespace Neo.Persistence
         /// <returns>
         /// The cached data, or <see langword="null"/> if it doesn't exist and the <paramref name="factory"/> is not provided.
         /// </returns>
-#if NET5_0_OR_GREATER
         [return: NotNullIfNotNull(nameof(factory))]
-#endif
         public StorageItem? GetAndChange(StorageKey key, Func<StorageItem>? factory = null)
         {
             lock (_dictionary)
