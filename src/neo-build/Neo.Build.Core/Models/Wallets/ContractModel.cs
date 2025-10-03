@@ -29,9 +29,9 @@ namespace Neo.Build.Core.Models.Wallets
         public Contract ToObject()
         {
             if (Parameters == null)
-                return Contract.Create([], []);
+                return Contract.Create([], Script ?? []);
 
-            return Contract.Create([.. Parameters.Select(s => s.Type)], Script);
+            return Contract.Create([.. Parameters.Select(static s => s.Type)], Script ?? []);
         }
     }
 }
