@@ -109,6 +109,8 @@ namespace Neo.SmartContract.Native
         /// </summary>
         public static Notary Notary { get; } = new();
 
+        public static POSContract System { get; } = new();
+
         #endregion
 
         /// <summary>
