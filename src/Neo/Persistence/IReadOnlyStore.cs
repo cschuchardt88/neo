@@ -70,7 +70,9 @@ namespace Neo.Persistence
         /// <param name="keyPrefix">The prefix of the key.</param>
         /// <param name="direction">The search direction.</param>
         /// <param name="skip">
-        /// Number of entries to skip in seek order, before the prefix filter is applied by the caller.
+        /// Number of entries to skip in seek order over raw store keys, before any prefix filter
+        /// is applied by the caller (for example <see cref="DataCache"/>). Advance the iterator
+        /// rather than filtering by prefix and then calling <c>Skip</c>.
         /// Implementations must reject negative values instead of treating them as zero.
         /// </param>
         /// <returns>The entries found with the desired prefix.</returns>

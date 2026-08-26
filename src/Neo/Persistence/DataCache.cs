@@ -327,19 +327,19 @@ namespace Neo.Persistence
         /// <summary>
         /// Finds the entries that between [start, end).
         /// </summary>
-        /// <param name="keyOrPrefixStart">The start key or prefix (inclusive).</param>
-        /// <param name="keyOrPrefixStartEnd">The end key (exclusive).</param>
+        /// <param name="start">The start key (inclusive).</param>
+        /// <param name="end">The end key (exclusive).</param>
         /// <param name="skip">Number of entries to skip.</param>
         /// <param name="direction">The search direction.</param>
         /// <returns>The entries found with the desired range.</returns>
-        public IEnumerable<(StorageKey Key, StorageItem Value)> FindRange(byte[] keyOrPrefixStart, byte[] keyOrPrefixStartEnd, SeekDirection direction = SeekDirection.Forward, int skip = 0)
+        public IEnumerable<(StorageKey Key, StorageItem Value)> FindRange(byte[] start, byte[] end, SeekDirection direction = SeekDirection.Forward, int skip = 0)
         {
             var comparer = direction == SeekDirection.Forward
                 ? ByteArrayComparer.Default
                 : ByteArrayComparer.Reverse;
-            foreach (var (key, value) in Seek(keyOrPrefixStart, direction, skip))
+            foreach (var (key, value) in Seek(start, direction, skip))
             {
-                if (comparer.Compare(key.ToArray(), keyOrPrefixStartEnd) < 0)
+                if (comparer.Compare(key.ToArray(), end) < 0)
                     yield return (key, value);
                 else
                     yield break;
@@ -528,9 +528,10 @@ namespace Neo.Persistence
             }
 
             var skipInMemory = 0;
-            if (_dictionary.Count > 0)
+            if (cachedKeySet.Count > 0)
             {
-                // If there are cached entries, we need to skip them first before seeking the underlying storage.
+                // The offset counts over the merged sequence, and tracked keys can add or hide
+                // store entries, so the store must be sought from 0 and the offset applied below.
                 skipInMemory = skip;
                 skip = 0;
             }
