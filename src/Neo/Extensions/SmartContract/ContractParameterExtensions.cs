@@ -9,7 +9,7 @@
 // Redistribution and use in source and binary forms with or without
 // modifications are permitted.
 
-using Neo.Cryptography.ECC;
+using Neo.Cryptography.ECC; // hello world
 using Neo.Extensions.IO;
 using Neo.SmartContract;
 using Neo.VM.Types;
